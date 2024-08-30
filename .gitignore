@@ -1,0 +1,47 @@
+# RStudio project files
+.Rproj.user/
+
+# R history and data files
+.Rhistory
+.RData
+
+# R user data
+.Ruserdata
+
+# Simulation outputs and directories
+/simulation/
+# You can exclude specific directories if you want to keep others
+/simulation/airfoil_data
+/simulation/Chen
+/simulation/Hu_Lei
+/simulation/Yan
+/simulation/Ours/Real_examples/
+
+# Temporary files created by R or other tools
+*.Rproj
+*.Rhistory
+*.RData
+*.Ruserdata
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*.swp
+
+# R packages
+.Renviron
+.Rprofile
+
+# Cache files
+.Rapp.history
+.Rapp.cache/
+
+# Exclude specific files or directories related to user-specific data or sensitive information
+*.csv
+*.xlsx
+*.zip
+
+# OS-specific files
+.DS_Store
+Thumbs.db
