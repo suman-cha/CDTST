@@ -8,15 +8,6 @@
 # R user data
 .Ruserdata
 
-# Simulation outputs and directories
-/simulation/
-# You can exclude specific directories if you want to keep others
-/simulation/airfoil_data
-/simulation/Chen
-/simulation/Hu_Lei
-/simulation/Yan
-/simulation/Ours/Real_examples/
-
 # Temporary files created by R or other tools
 *.Rproj
 *.Rhistory
