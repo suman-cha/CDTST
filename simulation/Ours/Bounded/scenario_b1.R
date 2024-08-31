@@ -1,5 +1,7 @@
+# Clear workspace
 rm(list = ls())
-setwd("~/CDTST/simulation/Ours")  
+
+# Suppress startup messages and load packages
 suppressPackageStartupMessages({
   library(MASS)
   library(glmnet)
@@ -8,12 +10,13 @@ suppressPackageStartupMessages({
   library(kernlab)
   library(foreach)
   library(doParallel)
-  library(data.table)  # Using data.table for efficient data manipulation
+  library(data.table)  
   library(ggplot2)
   library(tmvtnorm)
   library(RCIT)
 })
 
+# Source additional scripts
 source("all_tests.R")
 
 set.seed(1203)
@@ -33,6 +36,7 @@ generate_data <- function(n, p, group) {
   return(x)
 }
 
+# Function to generate response variable
 generate_y <- function(x, is_null = TRUE, sigma = 2) {
   n <- nrow(x)
   epsilon <- rt(n, df = sigma)
@@ -42,7 +46,7 @@ generate_y <- function(x, is_null = TRUE, sigma = 2) {
   return(y)
 }
 
-# List of test functions to apply
+# Define test functions
 c2st_test_functions <- list(
   LinearMMD_test = LinearMMD_test,
   CLF_test = CLF_test,
@@ -76,6 +80,14 @@ registerDoParallel(cl)
 # Explicitly source the necessary R scripts on each worker node
 clusterEvalQ(cl, {
   source("all_tests.R")
+  library(MASS)
+  library(glmnet)
+  library(ANN2)
+  library(CVST)
+  library(kernlab)
+  library(tmvtnorm)
+  library(RCIT)
+  library(data.table)
 })
 
 results_dt <- data.table()
@@ -83,13 +95,15 @@ results_dt <- data.table()
 print("Model A' is running...")
 
 # Parallelize the computations
-foreach(n = n_values, .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table")) %:%
-  foreach(d = d_values, .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table")) %:%
-  foreach(is_null = c(TRUE, FALSE), .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table")) %:%
-  foreach(test_type = c("C2ST", "CIT"), .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table")) %:%
-  foreach(test_name = names(c2st_test_functions), .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table")) %:%
-  foreach(extra_param = if (test_type == "C2ST") estimators else c(TRUE, FALSE), .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table")) %dopar% {
+results_dt <- foreach(n = n_values, .combine = 'rbind', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT", "data.table", "foreach", "doParallel")) %:%
+  foreach(d = d_values, .combine = 'rbind') %:%
+  foreach(is_null = c(TRUE, FALSE), .combine = 'rbind') %:%
+  foreach(test_type = c("C2ST", "CIT"), .combine = 'rbind') %:%
+  foreach(test_name = if (test_type == "C2ST") names(c2st_test_functions) else names(cit_test_functions), .combine = 'rbind') %:%
+  foreach(extra_param = if (test_type == "C2ST") estimators else c(TRUE, FALSE), .combine = 'rbind') %dopar% {
     
+    # Choose the appropriate test function list
+    test_functions <- if (test_type == "C2ST") c2st_test_functions else cit_test_functions
     h_label <- if (is_null) "Null" else "Alternative"
     
     result <- foreach(sim = 1:(n_sims / 50), .combine = 'c', .packages = c("MASS", "glmnet", "ANN2", "CVST", "kernlab", "tmvtnorm", "RCIT")) %dopar% {
