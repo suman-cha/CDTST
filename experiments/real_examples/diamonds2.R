@@ -45,20 +45,21 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
   }
   
   if (is_null) {
-    u <- runif(n)
-    y <- quantile(Y, u)
+    y <- sample(Y, n, replace = TRUE)
   } else {
     if (is_x1) {
-      u <- rbeta(n, 0.5, 0.5)
-      y <- quantile(Y, u)
+      y <- sample(Y, n, replace = TRUE)
     } else {
-      u <- rbeta(n, 2, 2)
-      y <- quantile(Y, u)
+      Y_sorted <- sort(Y)
+      weights <- dbeta(Y_sorted, 3, 2) 
+      weights <- weights / sum(weights)
+      y <- sample(Y_sorted, n, replace = TRUE, prob = weights)
     }
   }
   
   return(list(x = x, y = y))
 }
+
 
 # Define test functions
 c2st_tests <- list(

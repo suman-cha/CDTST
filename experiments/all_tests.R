@@ -559,7 +559,7 @@ PCM_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, regr.method =
       x2_sample <- x2[sample(1:nrow(x2), tilde_n2, replace = FALSE), , drop = FALSE]
       X_merged <- rbind(x1_sample, x2_sample)
       idx <- sample(1:tilde_n, tilde_n, replace = FALSE)
-      X_merged <- X_merged[idx]
+      X_merged <- X_merged[idx, ]
       y1_sample <- y1[sample(1:length(y1), tilde_n1, replace = FALSE)]
       y2_sample <- y2[sample(1:length(y2), tilde_n2, replace = FALSE)]
       Y_merged <- c(y1_sample, y2_sample)
@@ -666,13 +666,13 @@ WGCM_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_r
       Y_merged <- Y_merged[idx]
       Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
       Z_merged <- Z_merged[idx]
-      # wgcm.pvalue <- wGCM_fix_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method)
-      wgcm.pvalue <- wGCM_fix(X=Z_merged, Y=Y_merged, Z=X_merged, reg_method=regr.method)
+      wgcm.pvalue <- wGCM_fix_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method)
+      # wgcm.pvalue <- wGCM_fix(X=Z_merged, Y=Y_merged, Z=X_merged, reg_method=regr.method)
     }
   } else{
     Z <- c(rep(0, n1), rep(1, n2))
-    # wgcm.pvalue <- wGCM_fix_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method)
-    wgcm.pvalue <- wGCM_fix(X=Z, Y=Y, Z=X, reg_method=regr.method)
+    wgcm.pvalue <- wGCM_fix_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method)
+    # wgcm.pvalue <- wGCM_fix(X=Z, Y=Y, Z=X, reg_method=regr.method)
   }
   if (wgcm.pvalue < alpha){
     rejection <- 1
@@ -718,13 +718,13 @@ WGSC_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_r
       Y_merged <- Y_merged[idx]
       Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
       Z_merged <- Z_merged[idx]
-      # wgsc.pvalue <- wgsc_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method)
-      wgsc.pvalue <- wgsc(X=Z_merged, Y=Y_merged, Z=X_merged, reg_method = regr.method)
+      wgsc.pvalue <- wgsc_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method)
+      # wgsc.pvalue <- wgsc(X=Z_merged, Y=Y_merged, Z=X_merged, reg_method = regr.method)
     }
   } else{
     Z <- c(rep(0, n1), rep(1, n2))
-    # wgsc.pvalue <- wgsc_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method)
-    wgsc.pvalue <- wgsc(X=Z, Y=Y, Z=X, reg_method = regr.method)
+    wgsc.pvalue <- wgsc_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method)
+    # wgsc.pvalue <- wgsc(X=Z, Y=Y, Z=X, reg_method = regr.method)
   }
   if (wgsc.pvalue < alpha){
     rejection <- 1
@@ -773,7 +773,6 @@ RCIT_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, alg1 = TRUE,
       Y_merged <- Y_merged[idx]
       Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
       Z_merged <- Z_merged[idx]
-      
       rcit.pvalue <- RCIT(x=Y_merged, y=Z_merged, z=X_merged, approx = "perm", num_f = 100, num_f2 = 10, seed = seed)$p
     }
   } else {
@@ -829,14 +828,14 @@ RCoT_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, alg1 = TRUE,
       Y_merged <- Y_merged[idx]
       Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
       Z_merged <- Z_merged[idx]
-      rcit.pvalue <- RCoT(x=Y_merged, y=Z_merged, z=X_merged, approx = "lpd4", num_f = 100, num_f2 = 10, seed = seed)$p
+      rcot.pvalue <- RCoT(x=Y_merged, y=Z_merged, z=X_merged, approx = "lpd4", num_f = 100, num_f2 = 10, seed = seed)$p
     }
   } else {
     Z <- c(rep(1, n1), rep(2, n2))
-    rcit.pvalue <- RCoT(x=Y, y=Z, z=X, approx = "lpd4", num_f = 100, num_f2 = 10, seed = seed)$p
+    rcot.pvalue <- RCoT(x=Y, y=Z, z=X, approx = "lpd4", num_f = 100, num_f2 = 10, seed = seed)$p
   }
   
-  if (rcit.pvalue < alpha) {
+  if (rcot.pvalue < alpha) {
     rejection <- 1
   }
   
