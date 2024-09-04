@@ -64,17 +64,17 @@ generate_y <- function(x, rho, is_null) {
 
 # Test functions
 c2st_test_functions <- list(
-  # LinearMMD_test = LinearMMD_test,
-  # CVLinearMMD_test = CV_LinearMMD_test,
-  # CLF_test = CLF_test,
-  # CVCLF_test = CV_CLF_test,
-  # CP_test = CP_test,
-  # debiased_test = debiased_test
+  LinearMMD_test = LinearMMD_test,
+  CVLinearMMD_test = CV_LinearMMD_test,
+  CLF_test = CLF_test,
+  CVCLF_test = CV_CLF_test,
+  CP_test = CP_test,
+  debiased_test = debiased_test
 )
 
 cit_test_functions <- list(
-  # RCIT_test = RCIT_test,
-  # RCoT_test = RCoT_test,
+  RCIT_test = RCIT_test,
+  RCoT_test = RCoT_test,
   PCM_test = PCM_test,
   GCM_test = GCM_test,
   WGSC_test = WGSC_test

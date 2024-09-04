@@ -38,22 +38,21 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
     x <- matrix(0, nrow = n, ncol = ncol(X))
     for (i in 1:ncol(X)) {
       x[,i] <- ifelse(mixture == 1, 
-                      rnorm(n, means[i] - sds[i], sds[i]/2), 
-                      rnorm(n, means[i] + sds[i], sds[i]/2))
+                      rnorm(n, means[i] - sds[i], sds[i]), 
+                      rnorm(n, means[i] + sds[i], sds[i]))
     }
-    x <- pmin(pmax(x, 0), 1)
   }
   
   if (is_null) {
-    y <- sample(Y, n, replace = TRUE)
+    y <- sample(Y, n, replace = FALSE)
   } else {
     if (is_x1) {
-      y <- sample(Y, n, replace = TRUE)
+      y <- sample(Y, n, replace = FALSE)
     } else {
       Y_sorted <- sort(Y)
-      weights <- dbeta(Y_sorted, 3, 2) 
+      weights <- dbeta(Y, 2, 3)
       weights <- weights / sum(weights)
-      y <- sample(Y_sorted, n, replace = TRUE, prob = weights)
+      y <- sample(Y, n, replace = FALSE, prob = weights)
     }
   }
   
@@ -79,7 +78,7 @@ cit_tests <- list(
   RCoT_test = RCoT_test
 )
 
-n_vals <- c(200, 400, 800, 1200, 1600, 2000)
+n_vals <- c(200, 400)
 n_sims <- 500
 estimators <- c("LL")
 

@@ -300,8 +300,6 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
     model <- glm(class ~. -y, data = data, family = binomial())
     marg_ratio <- function(x) {
       eta <- predict(model, newdata = x, type = "response")
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, function(x) { return(marg(x, n0, n1)) }))
     }
   } else if(type == "QL") {
@@ -313,8 +311,6 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
     marg_ratio <- function(x) {
       x_poly <- data.frame(poly(as.matrix(x[, !names(x) %in% "class"]), degree = 2, raw = TRUE))
       eta <- predict(model, newdata = x_poly, type = "response")
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, function(x) { return(marg(x, n0, n1)) }))
     }
   } else if(type == "KLR") {
@@ -335,8 +331,6 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
       new_x <- as.matrix(x[, !names(x) %in% "class"])
       K <- kernelMult(fit.marginal$kernel, new_x, fit.marginal$data, fit.marginal$alpha)
       pi <- 1 / (1 + exp(-as.vector(K)))  # predicted probabilities
-      pi[pi < 0.01] <- 0.01
-      pi[pi > 0.99] <- 0.99
       return(sapply(pi, function(x) { return(marg(x, n0, n1)) }))
     }
   } else if(type == "superlearner") {
@@ -354,8 +348,6 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
     
     marg_ratio <- function(x) {
       eta <- predict(model, x[, !names(x) %in% c("class", "y")], onlySL = TRUE)$pred
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, function(x) { return(marg(x, n0, n1)) }))
     }
   } else if(type == "nn") {
@@ -366,8 +358,6 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
     
     marg_ratio <- function(x) {
       eta <- predict(model, x[, 1:4], type = "prob")$.pred_1
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, function(x) { return(marg(x, n0, n1)) }))
     }
   }
@@ -381,8 +371,6 @@ estimate_joint_ratio <- function(data, type) {
     model <- glm(class ~ ., data = data, family = binomial())
     joint_ratio <- function(point) {
       eta <- predict(model, newdata = point, type = "response")
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, joint))
     }
   } else if(type == "QL") {
@@ -394,8 +382,6 @@ estimate_joint_ratio <- function(data, type) {
     joint_ratio <- function(point) {
       point_poly <- data.frame(poly(as.matrix(point[, !names(point) %in% "class"]), degree = 2, raw = TRUE))
       eta <- predict(model, newdata = point_poly, type = "response")
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, joint))
     }
   } else if(type == "KLR") {
@@ -416,8 +402,6 @@ estimate_joint_ratio <- function(data, type) {
       new_point <- as.matrix(point[, !names(point) %in% "class"])
       K <- kernelMult(fit.joint$kernel, new_point, fit.joint$data, fit.joint$alpha)
       pi <- 1 / (1 + exp(-as.vector(K)))  # predicted probabilities
-      pi[pi < 0.01] <- 0.01
-      pi[pi > 0.99] <- 0.99
       return(sapply(pi, joint))
     }
   } else if(type == "superlearner") {
@@ -435,8 +419,6 @@ estimate_joint_ratio <- function(data, type) {
     
     joint_ratio <- function(point) {
       eta <- predict(model, point[, !names(point) %in% "class"], onlySL = TRUE)$pred
-      eta[eta < 0.01] <- 0.01
-      eta[eta > 0.99] <- 0.99
       return(sapply(eta, joint))
     }
   }
