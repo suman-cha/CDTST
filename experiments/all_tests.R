@@ -61,11 +61,15 @@ debiased_test <- function(x1, x2, y1, y2, prop=0.5, level=0.05, est.method="LL",
   data1$y <- y2
   data1$class <- rep(1, nrow(data1))
   
+  # Ensure consistent column names between data0 and data1
+  colnames(data1) <- colnames(data0)
+  
   # Sample split
   split0_ind <- sample(seq_len(nrow(data0)), size = floor(0.5 * nrow(data0)))
   split1_ind <- sample(seq_len(nrow(data1)), size = floor(0.5 * nrow(data1)))
   split0 <- data0[split0_ind, ]
   split1 <- data1[split1_ind, ]
+  colnames(split1) <- colnames(split0)
   split <- rbind(split0, split1)
   
   test0 <- data0[-split0_ind, ]

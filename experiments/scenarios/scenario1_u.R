@@ -1,5 +1,6 @@
 rm(list = ls())
 set.seed(1203)
+setwd("/cloud/project/CDTST/simulation/Ours")
 suppressPackageStartupMessages({
   library(MASS)
   library(glmnet)

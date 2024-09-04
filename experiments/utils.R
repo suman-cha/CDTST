@@ -10,7 +10,10 @@ required_pkgs <- c("glmnet",
                    "kernlab",
                    "SuperLearner",
                    "CVST",
-                   "densratio")
+                   "densratio",
+                   "parallel",
+                   "doParallel",
+                   "foreach")
 
 install_pkgs <- function(pkgs){
   new_pkgs <- pkgs[!(pkgs %in% installed.packages()[, "Package"])]
@@ -163,46 +166,45 @@ MMDl <- function(x12, x22, y12, y22, h_x=1, h_y=1, r_hat, kernel.type="gaussian"
 }
 
 estimate_r <- function(x11, x12, x21, x22, y11, y12, y21, y22, est.method="LL", seed=NULL){
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
+  if (!is.null(seed)) set.seed(seed)
+  
   n11 <- length(y11); n12 <- length(y12)
   n21 <- length(y21); n22 <- length(y22)
-  label.fit <- as.factor(c(rep(0,n11), rep(1,n21)))
+  label.fit <- factor(c(rep(0,n11), rep(1,n21)))
   
   if (est.method == "LL"){
-    xy.fit <- data.frame(x.fit=rbind(x11, x21), y.fit=c(y11, y21))
-    fit.joint <- glm(label.fit~., data=xy.fit, family="binomial")
-    x.fit <- data.frame(x.fit=rbind(x11,x21))
-    fit.marginal <- glm(label.fit~., data=x.fit, family="binomial")
-    prob.marginal <- predict(fit.marginal, newdata=data.frame(x.fit=rbind(x12,x22)), type="response")
-    prob.marginal[prob.marginal<0.01] <- 0.01; prob.marginal[prob.marginal>0.99] <- 0.99
+    xy.fit <- cbind(rbind(x11, x21), c(y11, y21))
+    fit.joint <- glm(label.fit~., data=as.data.frame(xy.fit), family=binomial())
+    x.fit <- rbind(x11,x21)
+    fit.marginal <- glm(label.fit~., data=as.data.frame(x.fit), family=binomial())
+    
+    new_data <- rbind(x12,x22)
+    prob.marginal <- predict(fit.marginal, newdata=as.data.frame(new_data), type="response")
+    
     g12.est <- prob.marginal[1:n12]/(1-prob.marginal[1:n12])*n11/n21
     g22.est <- prob.marginal[(n12+1):(n12+n22)]/(1-prob.marginal[(n12+1):(n12+n22)])*n11/n21
-    prob.joint <- predict(fit.joint, newdata=data.frame(x.fit=rbind(x12,x22), y.fit=c(y12,y22)), type="response")
-    prob.joint[prob.joint<0.01] <- 0.01; prob.joint[prob.joint>0.99] <- 0.99
+    
+    new_data <- cbind(new_data, c(y12,y22))
+    prob.joint <- predict(fit.joint, newdata=as.data.frame(new_data), type="response")
+    
     v12.est <- (1-prob.joint[1:n12])/prob.joint[1:n12]*g12.est
     v22.est <- (1-prob.joint[(n12+1):(n12+n22)])/prob.joint[(n12+1):(n12+n22)]*g22.est
     
   } else if (est.method == "QL"){ 
-    xy.fit = cbind(rbind(x11,x21), c(y11,y21))
-    xy.fit = data.frame(poly(as.matrix(xy.fit), degree = 2, raw = T))
-    fit.joint = glm(label.fit~., data=xy.fit, family="binomial")
-    x.fit <- rbind(x11,x21)
-    x.fit = data.frame(poly(as.matrix(x.fit), degree = 2, raw = T))
-    fit.marginal <- glm(label.fit~., data=x.fit, family="binomial")
-    newdata = data.frame(poly(as.matrix(rbind(x12,x22)), degree = 2, raw = T))
-    prob.marginal <- predict(fit.marginal, newdata=newdata, type="response")
-    prob.marginal[prob.marginal < 0.01] <- 0.01
-    prob.marginal[prob.marginal > 0.99] <- 0.99
+    xy.fit <- poly(cbind(rbind(x11,x21), c(y11,y21)), degree = 2, raw = TRUE)
+    fit.joint <- glm(label.fit~., data=as.data.frame(xy.fit), family=binomial())
+    
+    x.fit <- poly(rbind(x11,x21), degree = 2, raw = TRUE)
+    fit.marginal <- glm(label.fit~., data=as.data.frame(x.fit), family=binomial())
+    
+    new_data <- poly(rbind(x12,x22), degree = 2, raw = TRUE)
+    prob.marginal <- predict(fit.marginal, newdata=as.data.frame(new_data), type="response")
     
     g12.est <- prob.marginal[1:n12] / (1 - prob.marginal[1:n12]) * n11 / n21
     g22.est <- prob.marginal[(n12 + 1):(n12 + n22)] / (1 - prob.marginal[(n12 + 1):(n12 + n22)]) * n11 / n21
     
-    newdata = data.frame(poly(as.matrix(cbind(rbind(x12, x22), c(y12, y22))), degree = 2, raw = T))
-    prob.joint <- predict(fit.joint, newdata = newdata, type = "response")
-    prob.joint[prob.joint < 0.01] <- 0.01
-    prob.joint[prob.joint > 0.99] <- 0.99
+    new_data <- poly(cbind(rbind(x12, x22), c(y12, y22)), degree = 2, raw = TRUE)
+    prob.joint <- predict(fit.joint, newdata = as.data.frame(new_data), type = "response")
     
     v12.est <- (1 - prob.joint[1:n12]) / prob.joint[1:n12] * g12.est
     v22.est <- (1 - prob.joint[(n12 + 1):(n12 + n22)]) / prob.joint[(n12 + 1):(n12 + n22)] * g22.est
@@ -211,24 +213,24 @@ estimate_r <- function(x11, x12, x21, x22, y11, y12, y21, y22, est.method="LL", 
     xy.fit <- cbind(rbind(x11, x21), c(y11, y21))
     data.fit <- constructData(xy.fit, label.fit)
     klrlearner <- constructKlogRegLearner()
-    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.05/getN(data.fit), tol=10e-6, maxiter=500)
+    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.05/nrow(data.fit), tol=10e-6, maxiter=500)
     fit.joint <- klrlearner$learn(data.fit, params)
+    
     x.fit <- rbind(x11, x21)
     data.fit <- constructData(x.fit, label.fit)
-    klrlearner <- constructKlogRegLearner()
-    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.05/getN(data.fit), tol=10e-6, maxiter=500)
     fit.marginal <- klrlearner$learn(data.fit, params)
     
     newdata <- rbind(x12, x22)
-    K = kernelMult(fit.marginal$kernel, newdata, fit.marginal$data, fit.marginal$alpha)
-    pi = 1 / (1 + exp(-as.vector(K))) # predicted probabilities
-    pi[pi<0.01] <- 0.01; pi[pi>0.99] <- 0.99
+    K <- kernelMult(fit.marginal$kernel, newdata, fit.marginal$data, fit.marginal$alpha)
+    pi <- 1 / (1 + exp(-as.vector(K)))
+    
     g12.est <- pi[1:n12]/(1-pi[1:n12])*n11/n21
     g22.est <- pi[(n12+1):(n12+n22)]/(1-pi[(n12+1):(n12+n22)])*n11/n21
+    
     newdata <- cbind(rbind(x12, x22), c(y12, y22))
-    K = kernelMult(fit.joint$kernel, newdata, fit.joint$data, fit.joint$alpha)
-    pi = 1 / (1 + exp(-as.vector(K))) # predicted probabilities
-    pi[pi<0.01] <- 0.01; pi[pi>0.99] <- 0.99
+    K <- kernelMult(fit.joint$kernel, newdata, fit.joint$data, fit.joint$alpha)
+    pi <- 1 / (1 + exp(-as.vector(K)))
+    
     v12.est <- (1-pi[1:n12])/pi[1:n12]*g12.est
     v22.est <- (1-pi[(n12+1):(n12+n22)])/pi[(n12+1):(n12+n22)]*g22.est
     
@@ -236,33 +238,39 @@ estimate_r <- function(x11, x12, x21, x22, y11, y12, y21, y22, est.method="LL", 
     hidden.layers <- c(10,10)
     learn.rates <- 0.001
     n.epochs <- 500
-    x.fit <- data.frame(x=rbind(x11, x21))
-    newdata1 <- data.frame(x=x12)
-    newdata2 <- data.frame(x=x22)
+    x.fit <- rbind(x11, x21)
+    newdata1 <- x12
+    newdata2 <- x22
+    
     temp <- NNfun(x.fit, label.fit, newdata1, newdata2, nnrep = 5, hidden.layers = hidden.layers,
                   n.epochs = n.epochs, learn.rates = learn.rates)
+    
     g12.est <- temp$prob1.fit/(1-temp$prob1.fit)*n11/n21
     g22.est <- temp$prob2.fit/(1-temp$prob2.fit)*n11/n21
     
-    xy.fit <- data.frame(x=rbind(x11, x21), y=c(y11, y21))
-    newdata1 <- data.frame(x=x12, y=y12)
-    newdata2 <- data.frame(x=x22, y=y22)
+    xy.fit <- cbind(rbind(x11, x21), c(y11, y21))
+    newdata1 <- cbind(x12, y12)
+    newdata2 <- cbind(x22, y22)
+    
     temp <- NNfun(xy.fit, label.fit, newdata1, newdata2, nnrep = 5, hidden.layers = hidden.layers,
                   n.epochs = n.epochs, learn.rates = learn.rates)
+    
     v12.est <- (1-temp$prob1.fit)/temp$prob1.fit*g12.est
     v22.est <- (1-temp$prob2.fit)/temp$prob2.fit*g22.est
+    
   } else if (est.method == "KLIEP"){
-    xy1 <- data.frame(x=x11, y=y11)
-    xy2 <- data.frame(x=x21, y=y21)
-    fit.joint <- densratio(xy2, xy1, method="KLIEP", verbose=FALSE) # q(x,y)/p(x,y)
-    fit.marginal <- densratio(x21, x11, method="KLIEP", verbose=FALSE) # q(x)/p(x)
+    xy1 <- cbind(x11, y11)
+    xy2 <- cbind(x21, y21)
+    fit.joint <- densratio(xy2, xy1, method="KLIEP", verbose=FALSE)
+    fit.marginal <- densratio(x21, x11, method="KLIEP", verbose=FALSE)
+    
     g12.est <- fit.marginal$compute_density_ratio(x12)
     g22.est <- fit.marginal$compute_density_ratio(x22)
-    v12.est <- fit.joint$compute_density_ratio(data.frame(x=x12, y=y12))*g12.est
-    v22.est <- fit.joint$compute_density_ratio(data.frame(x=x22, y=y22))*g22.est
+    v12.est <- fit.joint$compute_density_ratio(cbind(x12, y12))*g12.est
+    v22.est <- fit.joint$compute_density_ratio(cbind(x22, y22))*g22.est
   }
-  return(list(g12.est = g12.est, g22.est = g22.est, v12.est=v12.est, v22.est=v22.est))
   
+  list(g12.est = g12.est, g22.est = g22.est, v12.est=v12.est, v22.est=v22.est)
 }
 
 
