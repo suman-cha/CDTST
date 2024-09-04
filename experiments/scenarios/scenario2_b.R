@@ -8,36 +8,30 @@ suppressPackageStartupMessages({
   library(kernlab)
   library(pbapply)
   library(ggplot2)
-  library(data.table)
 })
 source("all_tests.R")
-tag <- "S2U"
-
+tag <- "S2B"
 
 # Define the function g(Z)
 g <- function(Z, rho) {
   Z_adjusted <- Z
   diag(Z_adjusted) <- diag(Z_adjusted) - 0.5
   norm_diff <- norm(Z_adjusted, "F")
-  return(10 + rho * exp(-norm_diff/64))
+  return(3 + rho * exp(-norm_diff/64))
 }
 
-# Unbounded
+
+# Function to generate data for the given model
 generate_data <- function(n, p, group) {
-  if (p != 10) {
-    stop("p should be exactly 10 for this function.")
+  if (group == 1) {
+    x <- matrix(runif(n * p, 0, 1), nrow = n, ncol = p)
+  } else if (group == 2) {
+    w <- rbinom(n, 1, 0.25)
+    x <- w * matrix(runif(n * p, 0, 0.15), nrow = n, ncol = p) + (1-w) * matrix(runif(n * p, 0.15, 1.0), nrow = n, ncol = p)
   }
-  
-  if (group == 1) {  
-    c <- rbinom(n, 1, 0.5)
-    x <- c * mvrnorm(n, rep(0, 10), diag(p)) + (1 - c) * mvrnorm(n, c(0.5, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0.5), diag(p))
-  } else if (group == 2) {  
-    c <- rbinom(n, 1, 0.5)
-    x <- c * mvrnorm(n, rep(0, 10), diag(p)) + (1 - c) * mvrnorm(n, rep(0.5, 10), 1.5 * diag(p))
-  }
-  
   return(x)
 }
+
 
 generate_y <- function(x, rho, is_null) {
   n <- nrow(x)
@@ -50,7 +44,7 @@ generate_y <- function(x, rho, is_null) {
   }
   
   beta <- matrix(beta, ncol = 1)  
-  mean_X <- x %*% beta
+  mean_X <- x %*% beta  
   var_X <- g(x, rho)
   
   if (is_null) {
@@ -82,12 +76,13 @@ cit_test_functions <- list(
 
 # Define parameters
 n_values <- c(200, 500, 1000, 2000)
+d_values <- c(10)
 n_sims <- 500
 alpha <- 0.05
-s_values <- c(10)
 estimators <- c("LL")
 rho <- 10.0
-d_values <- c(10)
+results <- list()
+
 
 results_list <- list()
 
@@ -121,8 +116,8 @@ for (n in n_values) {
               if (test_type == "C2ST") {
                 test_args$est.method <- extra_param
               } else {
-                test_args$regr.method <- gam_reg_method
-                test_args$binary.regr.method <- gam_reg_method_binary
+                test_args$regr.method <- ranger_reg_method
+                test_args$binary.regr.method <- ranger_reg_method_binary
                 test_args$alg1 <- extra_param
               }
               
@@ -150,9 +145,10 @@ for (n in n_values) {
   }
 }
 
+# Combine all results into a single data.table
 results_dt <- rbindlist(results_list)
-print(results_dt)
 
+# Define filename and save to CSV
 filename <- paste0("results/simulation_results_", tag, ".csv")
 fwrite(results_dt, filename, row.names = FALSE)
 cat("Results saved to", filename, "\n")
