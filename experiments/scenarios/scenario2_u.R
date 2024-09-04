@@ -121,8 +121,8 @@ for (n in n_values) {
               if (test_type == "C2ST") {
                 test_args$est.method <- extra_param
               } else {
-                test_args$regr.method <- gam_reg_method
-                test_args$binary.regr.method <- gam_reg_method_binary
+                test_args$regr.method <- ranger_reg_method
+                test_args$binary.regr.method <- ranger_reg_method_binary
                 test_args$alg1 <- extra_param
               }
               

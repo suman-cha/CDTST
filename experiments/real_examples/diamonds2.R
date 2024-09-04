@@ -42,15 +42,16 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
                       rnorm(n, means[i] + sds[i], sds[i]))
     }
   }
-  
   if (is_null) {
     y <- sample(Y, n, replace = FALSE)
   } else {
     if (is_x1) {
-      y <- sample(Y, n, replace = FALSE)
+      weights <- dbeta(Y, 2, 2)
+      weights <- weights / sum(weights)
+      y <- sample(Y, n, replace = FALSE, prob = weights)
     } else {
       Y_sorted <- sort(Y)
-      weights <- dbeta(Y, 2, 3)
+      weights <- dbeta(Y, 3, 2)
       weights <- weights / sum(weights)
       y <- sample(Y, n, replace = FALSE, prob = weights)
     }
@@ -78,7 +79,7 @@ cit_tests <- list(
   RCoT_test = RCoT_test
 )
 
-n_vals <- c(200, 400)
+n_vals <- c(200, 400, 800, 1200, 1600, 2000)
 n_sims <- 500
 estimators <- c("LL")
 
