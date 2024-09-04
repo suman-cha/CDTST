@@ -13,8 +13,10 @@ suppressPackageStartupMessages({
 })
 source("all_tests.R")
 
-file_path <- ""
-data <- read.csv(file_path)
+cur_wd <- getwd()
+file_path <- "/real_examples/data/superconductivity.csv"
+full_path <- file.path(cur_wd, file_path)
+data <- read.csv(full_path)
 
 X <- as.matrix(data[, -ncol(data)])
 Y <- data[, "critical_temp"]
