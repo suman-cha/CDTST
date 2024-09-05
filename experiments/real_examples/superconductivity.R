@@ -68,7 +68,7 @@ cit_tests <- list(
 
 # Parameters
 n_vals <- c(200, 400, 800, 1200, 1600, 2000)
-n_sims <- 1
+n_sims <- 500
 estimators <- c("LL")
 
 # Initialize results with consistent column names
