@@ -26,19 +26,18 @@ X <- na.omit(X)
 Y <- Y[complete.cases(Y)]
 
 # Sampling indices
-X1_idx <- sample(1:nrow(X), size = nrow(X) / 2, replace = FALSE)
+X1_idx <- sample(1:nrow(X), size = 10000, replace = FALSE)
 X1 <- X[X1_idx, , drop = FALSE]
 re_idx <- setdiff(1:nrow(X), X1_idx)
-X_remainder <- X[re_idx, , drop = FALSE]
-mean_X1 <- colMeans(X1)
-linear_proj <- X_remainder %*% mean_X1
-quadratic_pot <- rowSums((X_remainder - mean_X1)^2)
-prob_remainder <- exp(-quadratic_pot / sd(quadratic_pot))
-prob_remainder <- prob_remainder / sum(prob_remainder)
+X_re <- X[re_idx, , drop = FALSE]
+X_re_mean <- rowMeans(X_re)
+X_re_var <- rowSums((X_re - X_re_mean)^2)
+X_re_prob <- exp(- X_re_mean / sqrt(X_re_var))
+X_re_prob <- X_re_prob / sum(X_re_prob)
 
 # Sampling for X2
 set.seed(1204)
-X2_idx <- sample(re_idx, size = nrow(X) / 2, replace = FALSE, prob = prob_remainder)
+X2_idx <- sample(1:nrow(X_re), size = 10000, replace = FALSE, prob = X_re_prob)
 
 # Normalize using scale()
 X_norm <- scale(X)
@@ -71,7 +70,6 @@ n_vals <- c(200, 400, 800, 1200, 1600, 2000)
 n_sims <- 500
 estimators <- c("LL")
 
-# Initialize results with consistent column names
 results_df <- data.frame(
   TestType = character(),
   Test = character(),
@@ -85,7 +83,7 @@ results_df <- data.frame(
 # Run C2ST tests
 for (test_name in names(c2st_tests)) {
   for (estimator in estimators) {
-    for (is_null in c(TRUE, FALSE)) {
+    for (is_null in c(FALSE, TRUE)) {
       h_label <- if (is_null) "Null" else "Alt"
       for (n in n_vals) {
         cat("[C2ST Test] ", test_name, "\n")
@@ -136,11 +134,10 @@ for (test_name in names(c2st_tests)) {
   }
 }
 
-# Similar modifications for CIT tests
 # Run CIT tests
 for (test_name in names(cit_tests)) {
   for (alg1 in c(TRUE, FALSE)) {
-    for (is_null in c(TRUE, FALSE)) {
+    for (is_null in c(FALSE, TRUE)) {
       h_label <- if (is_null) "Null" else "Alt"
       for (n in n_vals) {
         cat("[CIT Test] ", test_name, "\n")
@@ -191,7 +188,7 @@ for (test_name in names(cit_tests)) {
   }
 }
 
-# Save combined results to CSV
+# Save the results to CSV
 write.csv(results_df, file = "results/simulation_results_high_dim.csv", row.names = FALSE)
 
 print(results_df)
