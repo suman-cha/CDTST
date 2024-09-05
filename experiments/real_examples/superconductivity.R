@@ -68,11 +68,19 @@ cit_tests <- list(
 
 # Parameters
 n_vals <- c(200, 400, 800, 1200, 1600, 2000)
-n_sims <- 500
+n_sims <- 1
 estimators <- c("LL")
 
-# Initialize results
-results_df <- data.frame()
+# Initialize results with consistent column names
+results_df <- data.frame(
+  TestType = character(),
+  Test = character(),
+  Extraparam = character(),
+  SampleSize = numeric(),
+  Hypothesis = character(),
+  Result = numeric(),
+  stringsAsFactors = FALSE
+)
 
 # Run C2ST tests
 for (test_name in names(c2st_tests)) {
@@ -109,14 +117,17 @@ for (test_name in names(c2st_tests)) {
         }, simplify = "array")
         
         mean_result <- mean(result)
-        results_df <- rbind(results_df, data.frame(
+        new_row <- data.frame(
           TestType = "C2ST",
           Test = test_name,
           Extraparam = estimator,
           SampleSize = n,
           Hypothesis = h_label,
-          Result = mean_result
-        ))
+          Result = mean_result,
+          stringsAsFactors = FALSE
+        )
+        
+        results_df <- rbind(results_df, new_row)
         
         cat("[Result]: ", mean_result, "\n")
         cat(rep("-", 40), '\n')
@@ -125,6 +136,7 @@ for (test_name in names(c2st_tests)) {
   }
 }
 
+# Similar modifications for CIT tests
 # Run CIT tests
 for (test_name in names(cit_tests)) {
   for (alg1 in c(TRUE, FALSE)) {
@@ -160,14 +172,17 @@ for (test_name in names(cit_tests)) {
         }, simplify = "array")
         
         mean_result <- mean(result)
-        results_df <- rbind(results_df, data.frame(
+        new_row <- data.frame(
           TestType = "CIT",
           Test = test_name,
           Extraparam = alg1,
           SampleSize = n,
           Hypothesis = h_label,
-          Result = mean_result
-        ))
+          Result = mean_result,
+          stringsAsFactors = FALSE
+        )
+        
+        results_df <- rbind(results_df, new_row)
         
         cat("[Result]: ", mean_result, "\n")
         cat(rep("-", 40), '\n')

@@ -46,12 +46,11 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
     y <- sample(Y, n, replace = FALSE)
   } else {
     if (is_x1) {
-      weights <- dbeta(Y, 2, 2)
+      weights <- dbeta(Y, 4, 1.5)
       weights <- weights / sum(weights)
       y <- sample(Y, n, replace = FALSE, prob = weights)
     } else {
-      Y_sorted <- sort(Y)
-      weights <- dbeta(Y, 3, 2)
+      weights <- dbeta(Y, 3.5, 2)
       weights <- weights / sum(weights)
       y <- sample(Y, n, replace = FALSE, prob = weights)
     }
@@ -59,7 +58,6 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
   
   return(list(x = x, y = y))
 }
-
 
 # Define test functions
 c2st_tests <- list(
@@ -83,36 +81,47 @@ n_vals <- c(200, 400, 800, 1200, 1600, 2000)
 n_sims <- 500
 estimators <- c("LL")
 
-results_df <- data.frame()
+results_df <- data.frame(
+  TestType = character(),
+  Test = character(),
+  Extraparam = character(),
+  SampleSize = numeric(),
+  Hypothesis = character(),
+  Result = numeric(),
+  stringsAsFactors = FALSE
+)
 
-for (test in names(c2st_tests)) {
-  for (est in estimators) {
-    for (null in c(FALSE, TRUE)) {
-      label <- if (null) "Null" else "Alt"
+for (test_name in names(c2st_tests)) {
+  for (estimator in estimators) {
+    for (is_null in c(TRUE, FALSE)) {
+      h_label <- if (is_null) "Null" else "Alt"
       for (n in n_vals) {
-        cat("[Test] ", test, "\n")
-        cat("[Settings] ", "Sample size: ", n, " | Estimator: ", est, " | Hypothesis: ", label, "\n")
+        cat("[Test] ", test_name, "\n")
+        cat("[Settings] ", "Sample size: ", n, " | Estimator: ", estimator, " | Hypothesis: ", h_label, "\n")
         
         result <- pbapply::pbsapply(1:n_sims, function(sim) {
           set.seed(1203 + sim)
-          d1 <- sample_data(X_norm, Y_norm, n, null, TRUE)
+          d1 <- sample_data(X_norm, Y_norm, n, is_null, TRUE)
           set.seed(1203 + sim + n_sims)
-          d2 <- sample_data(X_norm, Y_norm, n, null, FALSE)
+          d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
           
-          test_args <- list(d1$x, d2$x, d1$y, d2$y, est.method = est, seed = 1203 + sim)
-          result <- do.call(c2st_tests[[test]], test_args)
+          test_args <- list(d1$x, d2$x, d1$y, d2$y, est.method = estimator, seed = 1203 + sim)
+          result <- do.call(c2st_tests[[test_name]], test_args)
           return(result)
         }, simplify = "array")
         
         mean_result <- mean(result)
-        results_df <- rbind(results_df, data.frame(
+        new_row <- data.frame(
           TestType = "C2ST",
-          Test = test,
-          Estimator = est,
+          Test = test_name,
+          Extraparam = estimator,
           SampleSize = n,
-          Hypothesis = label,
-          Result = mean_result
-        ))
+          Hypothesis = h_label,
+          Result = mean_result,
+          stringsAsFactors = FALSE
+        )
+        
+        results_df <- rbind(results_df, new_row)
         
         cat("[Result]: ", mean_result, "\n")
         cat(rep("-", 40), '\n')
@@ -121,34 +130,37 @@ for (test in names(c2st_tests)) {
   }
 }
 
-for (test in names(cit_tests)) {
-  for (alg in c(TRUE, FALSE)) {
-    for (null in c(TRUE, FALSE)) {
-      label <- if (null) "Null" else "Alt"
+for (test_name in names(cit_tests)) {
+  for (alg1 in c(TRUE, FALSE)) {
+    for (is_null in c(TRUE, FALSE)) {
+      h_label <- if (is_null) "Null" else "Alt"
       for (n in n_vals) {
-        cat("[Test] ", test, "\n")
-        cat("[Settings] ", "Sample size: ", n, " | Algorithm 1: ", alg, " | Hypothesis: ", label, "\n")
+        cat("[CIT Test] ", test_name, "\n")
+        cat("[Settings] Size: ", n, " | Algorithm1: ", alg1, " | Hypothesis: ", h_label, "\n")
         
         result <- pbapply::pbsapply(1:n_sims, function(sim) {
           set.seed(1203 + sim)
-          d1 <- sample_data(X_norm, Y_norm, n, null, TRUE)
+          d1 <- sample_data(X_norm, Y_norm, n, is_null, TRUE)
           set.seed(1203 + sim + n_sims)
-          d2 <- sample_data(X_norm, Y_norm, n, null, FALSE)
+          d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
           
-          test_args <- list(d1$x, d2$x, d1$y, d2$y, regr.method = ranger_reg_method, binary.regr.method = ranger_reg_method_binary, alg1 = alg, seed = 1203 + sim)
-          result <- do.call(cit_tests[[test]], test_args)
+          test_args <- list(d1$x, d2$x, d1$y, d2$y, regr.method = ranger_reg_method, binary.regr.method = ranger_reg_method_binary, alg1 = alg1, seed = 1203 + sim)
+          result <- do.call(cit_tests[[test_name]], test_args)
           return(result)
         }, simplify = "array")
         
         mean_result <- mean(result)
-        results_df <- rbind(results_df, data.frame(
+        new_row <- data.frame(
           TestType = "CIT",
-          Test = test,
-          Algorithm1 = alg,
+          Test = test_name,
+          Extraparam = alg1,
           SampleSize = n,
-          Hypothesis = label,
-          Result = mean_result
-        ))
+          Hypothesis = h_label,
+          Result = mean_result,
+          stringsAsFactors = FALSE
+        )
+        
+        results_df <- rbind(results_df, new_row)
         
         cat("[Result]: ", mean_result, "\n")
         cat(rep("-", 40), '\n')
