@@ -29,7 +29,6 @@
 .Rapp.cache/
 
 # Exclude specific files or directories related to user-specific data or sensitive information
-*.csv
 *.xlsx
 *.zip
 
