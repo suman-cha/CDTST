@@ -47,7 +47,6 @@ cit_tests <- list(
   RCoT_test = RCoT_test
 )
 
-# Combine all tests
 all_tests <- c(c2st_tests, cit_tests)
 
 # Parameters
@@ -64,7 +63,6 @@ results_df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Run all tests in a single loop
 for (test_name in names(all_tests)) {
   test_type <- if (test_name %in% names(c2st_tests)) "C2ST" else "CIT"
   
