@@ -21,8 +21,8 @@ colnames(X) <- c("V1", "V2", "V3", "V4", "V5", "V6")
 Y <- data$price
 
 # Normalize 
-X_norm <- scale(X, center=FALSE)
-Y_norm <- scale(Y, center=FALSE)
+X_norm <- scale(X)
+Y_norm <- scale(Y)
 
 sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
   if (is_x1) {
@@ -32,8 +32,8 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
     y <- Y[idx1]
     
     if (!is_null) {
-      prob_y1_norm1 <- dnorm(Y, mean(x), sd(x))
-      prob_y1_norm2 <- dnorm(Y, -mean(x), sd(x))
+      prob_y1_norm1 <- dnorm(Y, mean(x)/2, 8*sd(x))
+      prob_y1_norm2 <- dnorm(Y, -mean(x)/4, 4*sd(x))
       prob_y1 <- 0.5 * prob_y1_norm1 + 0.5 * prob_y1_norm2
       prob_y1 <- prob_y1 / sum(prob_y1)  
       y <- sample(Y, n, replace = FALSE, prob = prob_y1)
@@ -51,8 +51,8 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
       mean_x2 <- mean(x)
       sd_x2 <- sd(x)
       
-      prob_y2_norm1 <- dnorm(Y, mean_x2, sd_x2/2)
-      prob_y2_norm2 <- dnorm(Y, -mean_x2, sd_x2/2)
+      prob_y2_norm1 <- dnorm(Y, mean_x2/4, sd_x2/4)
+      prob_y2_norm2 <- dnorm(Y, -mean_x2/2, sd_x2/8)
       prob_y2 <- 0.5 * prob_y2_norm1 + 0.5 * prob_y2_norm2
       prob_y2 <- prob_y2 / sum(prob_y2) 
       y <- sample(Y, n, replace = FALSE, prob = prob_y2)
@@ -82,8 +82,8 @@ cit_tests <- list(
   RCoT_test = RCoT_test
 )
 
-n_vals <- c(400, 1200, 2000)
-n_sims <- 100
+n_vals <- c(200, 400, 800, 1200, 1600, 2000)
+n_sims <- 500
 estimators <- c("LL")
 
 all_tests <- c(c2st_tests, cit_tests)
@@ -104,7 +104,7 @@ for (test_name in names(all_tests)) {
   for (param in if(test_type == "C2ST") estimators else c(TRUE, FALSE)) {
     param_name <- if(test_type == "C2ST") "Estimator" else "Algorithm1"
     
-    for (is_null in c(FALSE)) {
+    for (is_null in c(TRUE, FALSE)) {
       h_label <- if (is_null) "Null" else "Alt"
       for (n in n_vals) {
         cat("[", test_type, " Test] ", test_name, "\n")
