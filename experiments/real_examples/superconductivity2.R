@@ -25,24 +25,14 @@ Y <- data[, "critical_temp"]
 X <- na.omit(X)
 Y <- Y[complete.cases(Y)]
 
-# Sampling indices for X1 and X2
-total_indices <- 1:nrow(X)
-X1_idx <- sample(total_indices, size = 10000, replace = FALSE)
-re_idx <- setdiff(total_indices, X1_idx)
-X2_idx <- sample(re_idx, size = 10000, replace = FALSE)
-
-# Normalize using scale()
+# Normalize 
 X_norm <- scale(X)
-X1 <- X_norm[X1_idx, , drop = FALSE]
-X2 <- X_norm[X2_idx, , drop = FALSE]
 Y_norm <- scale(Y)
-Y1 <- Y_norm[X1_idx]
-Y2 <- Y_norm[X2_idx]
 
 # Define test functions
 c2st_tests <- list(
-  # LinearMMD_test = LinearMMD_test,
-  # CLF_test = CLF_test,
+  LinearMMD_test = LinearMMD_test,
+  CLF_test = CLF_test,
   CP_test = CP_test,
   CV_LinearMMD_test = CV_LinearMMD_test,
   CV_CLF_test = CV_CLF_test,
@@ -82,44 +72,38 @@ for (test_name in names(c2st_tests)) {
         cat("[Settings] Size: ", n, " | Estimator: ", estimator, " | Hypothesis: ", h_label, "\n")
         
         result <- pbapply::pbsapply(1:n_sims, function(sim) {
-          # uniform sampling for x1
           seed <- 1203 + sim
           set.seed(seed)
-          idx1 <- sample(1:nrow(X1), n, replace = FALSE)
-          x1 <- X1[idx1, , drop = FALSE]
           
-          # sampling for x2 to create covariate shift
-          seed <- 1203 + sim + n_sims
-          set.seed(seed)
-          X2_mean <- colMeans(X2)
-          X2_dist <- apply(X2, 1, function(row) sum((row - X2_mean)^2))
-          X2_prob <- exp(-X2_dist / sd(X2_dist))
-          X2_prob <- X2_prob / sum(X2_prob)
-          idx2 <- sample(1:nrow(X2), n, replace = FALSE, prob = X2_prob)
-          x2 <- X2[idx2, , drop = FALSE]
+          # Uniform sampling for x1
+          idx1 <- sample(1:nrow(X_norm), n, replace = FALSE)
+          x1 <- X_norm[idx1, , drop = FALSE]
+          
+          # Sampling for x2 to create covariate shift
+          feature_to_bias <- X_norm[, ncol(X)-13]  
+          center <- mean(feature_to_bias)
+          bandwidth <- sd(feature_to_bias)
+          prob <- dt(feature_to_bias, df = 2)
+          prob <- prob / sum(prob)
+          idx2 <- sample(1:nrow(X_norm), n, replace = FALSE, prob = prob)
+          x2 <- X_norm[idx2, , drop = FALSE]
           
           if (is_null) {
-            y1 <- Y1[idx1]
-            y2 <- Y2[idx2]
-          } else{
-            y1_prob <- dnorm(Y1, mean = mean(Y1), sd = sd(Y1))
-            y1_prob <- y1_prob / sum(y1_prob)
-            y1 <- sample(Y1, size = n, replace = FALSE, prob = y1_prob)
+            y1 <- Y_norm[idx1]
+            y2 <- Y_norm[idx2]
+          } else {
+            # For y1: higher probability for values in the middle
+            mid_50 <- Y_norm >= quantile(Y_norm, 0.25) & Y_norm <= quantile(Y_norm, 0.75)
+            prob_y1 <- ifelse(mid_50, 0.5, 0.5)
+            prob_y1 <- prob_y1 / sum(prob_y1)
+            y1 <- sample(Y_norm, size = n, replace = FALSE, prob = prob_y1)
             
-            y2_prob <- dexp(Y2 - min(Y2), rate = 1/sd(Y2))
-            y2_prob <- y2_prob / sum(y2_prob)
-            y2 <- sample(Y2, size = n, replace = FALSE, prob = y2_prob)
+            # For y2: higher probability for values in the tails
+            tails <- Y_norm < quantile(Y_norm, 0.25) | Y_norm > quantile(Y_norm, 0.75)
+            prob_y2 <- ifelse(tails, 0.7, 0.3)
+            prob_y2 <- prob_y2 / sum(prob_y2)
+            y2 <- sample(Y_norm, size = n, replace = FALSE, prob = prob_y2)
           }
-          # y1 <- if (is_null) Y1[idx1] else {
-          #   prob_y1 <- ifelse(Y1 < quantile(Y1, 0.25) | Y1 > quantile(Y1, 0.75), 0.5, 0.5)
-          #   prob_y1 <- prob_y1 / sum(prob_y1)
-          #   Y1[sample(1:length(Y1), size = length(idx1), replace = FALSE, prob = prob_y1)]
-          # }
-          # y2 <- if (is_null) Y2[idx2] else {
-          #   prob_y2 <- ifelse(Y2 < quantile(Y2, 0.25) | Y2 > quantile(Y2, 0.75), 0.6, 0.4)
-          #   prob_y2 <- prob_y2 / sum(prob_y2)
-          #   Y2[sample(1:length(Y2), size = length(idx2), replace = FALSE, prob = prob_y2)]
-          # }
           
           test_args <- list(x1, x2, y1, y2, est.method = estimator, seed = seed)
           result <- do.call(c2st_tests[[test_name]], test_args)
@@ -149,51 +133,44 @@ for (test_name in names(c2st_tests)) {
 # Run CIT tests
 for (test_name in names(cit_tests)) {
   for (alg1 in c(TRUE, FALSE)) {
-    for (is_null in c(TRUE, FALSE)) {
+    for (is_null in c(FALSE, TRUE)) {
       h_label <- if (is_null) "Null" else "Alt"
       for (n in n_vals) {
         cat("[CIT Test] ", test_name, "\n")
         cat("[Settings] Size: ", n, " | Algorithm1: ", alg1, " | Hypothesis: ", h_label, "\n")
         
         result <- pbapply::pbsapply(1:n_sims, function(sim) {
-          # uniform sampling for x1
+          # Uniform sampling for x1
           seed <- 1203 + sim
           set.seed(seed)
-          idx1 <- sample(1:nrow(X1), n, replace = FALSE)
-          x1 <- X1[idx1, , drop = FALSE]
+          idx1 <- sample(1:nrow(X_norm), n, replace = FALSE)
+          x1 <- X_norm[idx1, , drop = FALSE]
           
-          # sampling for x2 to create covariate shift
-          seed <- 1203 + sim + n_sims
-          set.seed(seed)
-          X2_mean <- colMeans(X2)
-          X2_dist <- apply(X2, 1, function(row) sum((row - X2_mean)^2))
-          X2_prob <- exp(-X2_dist / sd(X2_dist))
-          X2_prob <- X2_prob / sum(X2_prob)
-          idx2 <- sample(1:nrow(X2), n, replace = FALSE, prob = X2_prob)
-          x2 <- X2[idx2, , drop = FALSE]
+          # Sampling for x2 to create covariate shift
+          feature_to_bias <- X_norm[, ncol(X)-13]  
+          center <- mean(feature_to_bias)
+          bandwidth <- sd(feature_to_bias)
+          prob <- dt(feature_to_bias, df = 2)
+          prob <- prob / sum(prob)
+          idx2 <- sample(1:nrow(X_norm), n, replace = FALSE, prob = prob)
+          x2 <- X_norm[idx2, , drop = FALSE]
           
           if (is_null) {
-            y1 <- Y1[idx1]
-            y2 <- Y2[idx2]
-          } else{
-            y1_prob <- dnorm(Y1, mean = mean(Y1), sd = sd(Y1))
-            y1_prob <- y1_prob / sum(y1_prob)
-            y1 <- sample(Y1, size = n, replace = FALSE, prob = y1_prob)
+            y1 <- Y_norm[idx1]
+            y2 <- Y_norm[idx2]
+          } else {
+            # For y1: Higher probability for values in the middle 50%
+            mid_50 <- Y_norm >= quantile(Y_norm, 0.25) & Y_norm <= quantile(Y_norm, 0.75)
+            prob_y1 <- ifelse(mid_50, 0.5, 0.5)
+            prob_y1 <- prob_y1 / sum(prob_y1)
+            y1 <- sample(Y_norm, size = n, replace = FALSE, prob = prob_y1)
             
-            y2_prob <- dexp(Y2 - min(Y2), rate = 1/sd(Y2))
-            y2_prob <- y2_prob / sum(y2_prob)
-            y2 <- sample(Y2, size = n, replace = FALSE, prob = y2_prob)
+            # For y2: Higher probability for values in the tails
+            tails <- Y_norm < quantile(Y_norm, 0.25) | Y_norm > quantile(Y_norm, 0.75)
+            prob_y2 <- ifelse(tails, 0.7, 0.3)
+            prob_y2 <- prob_y2 / sum(prob_y2)
+            y2 <- sample(Y_norm, size = n, replace = FALSE, prob = prob_y2)
           }
-          # y1 <- if (is_null) Y1[idx1] else {
-          #   prob_y1 <- ifelse(Y1 < quantile(Y1, 0.25) | Y1 > quantile(Y1, 0.75), 0.5, 0.5)
-          #   prob_y1 <- prob_y1 / sum(prob_y1)
-          #   Y1[sample(1:length(Y1), size = length(idx1), replace = FALSE, prob = prob_y1)]
-          # }
-          # y2 <- if (is_null) Y2[idx2] else {
-          #   prob_y2 <- ifelse(Y2 < quantile(Y2, 0.25) | Y2 > quantile(Y2, 0.75), 0.6, 0.4)
-          #   prob_y2 <- prob_y2 / sum(prob_y2)
-          #   Y2[sample(1:length(Y2), size = length(idx2), replace = FALSE, prob = prob_y2)]
-          # }
           
           test_args <- list(x1, x2, y1, y2, regr.method = ranger_reg_method, binary.regr.method = ranger_reg_method_binary, alg1 = alg1, seed = seed)
           result <- do.call(cit_tests[[test_name]], test_args)

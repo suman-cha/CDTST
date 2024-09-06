@@ -773,11 +773,11 @@ RCIT_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, alg1 = TRUE,
       Y_merged <- Y_merged[idx]
       Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
       Z_merged <- Z_merged[idx]
-      rcit.pvalue <- RCIT(x=Y_merged, y=Z_merged, z=X_merged, approx = "perm", num_f = 100, num_f2 = 10, seed = seed)$p
+      rcit.pvalue <- RCIT(x=Y_merged, y=Z_merged, z=X_merged, approx = "lpd4", num_f = 100, num_f2 = 10, seed = seed)$p
     }
   } else {
     Z <- c(rep(1, n1), rep(2, n2))
-    rcit.pvalue <- RCIT(x=Y, y=Z, z=X, approx = "perm", num_f = 100, num_f2 = 10, seed = seed)$p
+    rcit.pvalue <- RCIT(x=Y, y=Z, z=X, approx = "lpd4", num_f = 100, num_f2 = 10, seed = seed)$p
   }
   
   if (rcit.pvalue < alpha) {
