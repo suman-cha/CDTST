@@ -213,7 +213,7 @@ estimate_r <- function(x11, x12, x21, x22, y11, y12, y21, y22, est.method="LL", 
     xy.fit <- cbind(rbind(x11, x21), c(y11, y21))
     data.fit <- constructData(xy.fit, label.fit)
     klrlearner <- constructKlogRegLearner()
-    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.05/nrow(data.fit), tol=10e-6, maxiter=500)
+    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.0005, tol=10e-6, maxiter=500)
     fit.joint <- klrlearner$learn(data.fit, params)
     
     x.fit <- rbind(x11, x21)
@@ -425,4 +425,22 @@ estimate_joint_ratio <- function(data, type) {
   return(joint_ratio)
 }
 
+# Algorithm 1
+apply_alg1 <- function(x1, x2, y1, y2, seed, epsilon=NULL){
+  n1 <- length(y1)
+  n2 <- length(y2)
+  n <- n1 + n2
+  
+  if (is.null(epsilon)){
+    epsilon <- 1/log(n)
+  }
+  
+  k <- 1 - (3 * log(epsilon)) / (2 * n1) - sqrt((1 - (3 * log(epsilon)) / (2 * n1))^2 - 1)
+  tilde_n <- floor(k * n)
+  set.seed(seed)
+  tilde_n1 <- rbinom(1, size = tilde_n, prob = n1 / (n1 + n2))
+  tilde_n2 <- tilde_n - tilde_n1
+  
+  return(list(tilde_n1=tilde_n1, tilde_n2=tilde_n2))
+}
 
