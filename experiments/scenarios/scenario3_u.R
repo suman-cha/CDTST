@@ -15,43 +15,14 @@ suppressPackageStartupMessages({
 source("all_tests.R")
 tag <- "S3U"
 
-# Unbounded
+# Data generation functions
 generate_data <- function(n, p, group) {
-  if (group == 1) { 
-    c <- rbinom(n, 1, 0.5)
-    x <- c * mvrnorm(n, rep(0, p), 1.5 * diag(p)) + (1 - c) * mvrnorm(n, c(1, 1, -1, -1, rep(0, p-4)), diag(p))
-  } else if (group == 2) {  
-    c <- rbinom(n, 1, 0.5)
-    x <- c * mvrnorm(n, rep(0, p), diag(p)) + (1 - c) * mvrnorm(n, rep(1.5, p), 1.5 * diag(p))
-  }
-  
+  mu <- if (group == 1) c(1, 1, -1, -1, rep(0, p - 4)) else rep(0, p)
+  sigma <- diag(1, p)
+  x <- mvrnorm(n, mu = mu, Sigma = sigma)
   return(x)
 }
 
-generate_y <- function(x, is_null) {
-  n <- nrow(x)
-  # List of possible transformations
-  transformations <- list(
-    function(z) z,
-    function(z) z^2,
-    function(z) z^3,
-    function(z) sin(z),
-    function(z) tanh(z)
-  )
-  # Randomly choose a transformation
-  random_transformation <- sample(transformations, 1)[[1]]
-  
-  if (is_null) {
-    y <- cos(rowSums(x) + 2 * rnorm(n))
-    
-  } else {
-    y<- random_transformation(rowSums(x) + 2 * rnorm(n))
-    
-  }
-  
-  return(y)
-}
-
 
 generate_y <- function(x, is_null) {
   n <- nrow(x)
@@ -76,7 +47,6 @@ generate_y <- function(x, is_null) {
   
   return(y)
 }
-
 
 # Test functions
 c2st_test_functions <- list(
