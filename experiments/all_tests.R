@@ -399,75 +399,84 @@ CV_CLF_test <- function(x1, x2, y1, y2, prop=0.8, alpha = 0.05, K = 2, est.metho
   return(rejection)
 }
 
-CLF_test2 <- function(x1, x2, y1, y2, prop = 0.5, alpha = 0.05, est.method = "LL", seed = NULL) {
+CLF_test2 <- function(x1, x2, y1, y2, prop = 0.5, alpha = 0.05, est.method = "LL", seed = NULL, K = 5) {
   if (!is.null(seed)) {
     set.seed(seed)
   }
-  rejection <- 0
+  
   n1 <- length(y1); n2 <- length(y2)
-  n12 <- ceiling(n1 * prop); n22 <- ceiling(n2 * prop)
-  n11 <- n1 - n12; n21 <- n2 - n22
-  x11 <- x1[1:n11, , drop=F]; x12 <- x1[-(1:n11),,drop=F]
-  y11 <- y1[1:n11]; y12 <- y1[-(1:n11)]
-  x21 <- x2[1:n21, , drop=F]; x22 <- x2[-(1:n21), ,drop=F]
-  y21 <- y2[1:n21]; y22 <- y2[-(1:n21)]
+  n <- min(n1, n2)
+  m <- floor(n/2)
   
-  # Estimate the density ratios using the chosen method
-  ratios <- estimate_r(x11, x12, x21, x22, y11, y12, y21, y22, est.method, seed)
+  # Ensure x1 and x2 are data frames
+  x1 <- as.data.frame(x1[1:n,])
+  x2 <- as.data.frame(x2[1:n,])
   
-  g12.est <- 1/ratios$g12.est
-  g22.est <- 1/ratios$g22.est
+  # Combine and shuffle the data
+  combined_data <- rbind(
+    cbind(x1, Y = y1[1:n], Group = 0),
+    cbind(x2, Y = y2[1:n], Group = 1)
+  )
+  combined_data <- as.data.frame(combined_data)
+  shuffled_indices <- sample(1:(2*n))
+  combined_data <- combined_data[shuffled_indices,]
   
-  J12.est <- ratios$v12.est * g12.est
-  J22.est <- ratios$v22.est * g22.est
+  # Convert Group to factor
+  combined_data$Group <- as.factor(combined_data$Group)
   
-  ratio <- g22.est
+  # Split into D_a and D_b
+  D_a <- combined_data[1:n,]
+  D_b <- combined_data[(n+1):(2*n),]
   
-  # Prepare the data for logistic regression
-  V1 <- x12
-  V2 <- x22
-  y_combined <- c(rep(2, n12), rep(1, n22))  # Labels for combined data
-  V_combined <- rbind(V1, V2)  # Combine the two datasets
+  # Train classifier on D_b
+  classifier <- glm(Group ~ ., data = D_b[, -which(names(D_b) == "Y")], family = binomial())
   
-  # Compute weights according to the density ratio
-  weights <- c(rep(1, n12), ratio)
+  # K-fold cross-validation on D_a
+  folds <- cut(seq(1, nrow(D_a)), breaks = K, labels = FALSE)
+  Acc_cv <- numeric(K)
   
-  # Fit the weighted logistic regression model
-  logit_model <- glm(y_combined ~ ., data = data.frame(V_combined, y_combined), 
-                     family = binomial(), weights = weights)
-  
-  # Predict probabilities for test data
-  prob_V1 <- predict(logit_model, newdata = data.frame(V1), type = "response")
-  prob_V2 <- predict(logit_model, newdata = data.frame(V2), type = "response")
-  
-  # Convert probabilities to class predictions
-  pred_V1 <- ifelse(prob_V1 > 0.5, 1, 0)
-  pred_V2 <- ifelse(prob_V2 > 0.5, 1, 0)
-  
-  # Adjust predictions using the density ratios
-  A1_hat <- as.integer(pred_V1 == 0)
-  A2_hat <- ratio * as.integer(pred_V2 == 1)
-  
-  # Calculate mean and variance for the test statistic
-  bar_A1 <- mean(A1_hat)
-  bar_A2 <- mean(A2_hat)
-  sigma1_squared <- var(A1_hat)
-  sigma2_squared <- var(A2_hat)
-  sig <- sigma1_squared + sigma2_squared
-  
-  # Calculate the test statistic and p-value
-  if (sig > 0) {
-    Acc_hat <- sqrt(n22) * (bar_A1 + bar_A2 - 1) / sqrt(sig)
-    p_value <- 1 - pnorm(Acc_hat)
-  } else {
-    Acc_hat <- 0.0
-    p_value <- 1 - pnorm(Acc_hat)
+  for (i in 1:K) {
+    # Split D_a into D_a* and D_a**
+    test_indices <- which(folds == i)
+    D_a_star <- D_a[test_indices,]
+    D_a_star_star <- D_a[-test_indices,]
+    
+    # Estimate density ratio on D_a**
+    ratios <- estimate_r(
+      as.matrix(D_a_star_star[D_a_star_star$Group == 0, -c(which(names(D_a_star_star) %in% c("Y", "Group")))]), 
+      as.matrix(D_a_star[D_a_star$Group == 0, -c(which(names(D_a_star) %in% c("Y", "Group")))]), 
+      as.matrix(D_a_star_star[D_a_star_star$Group == 1, -c(which(names(D_a_star_star) %in% c("Y", "Group")))]), 
+      as.matrix(D_a_star[D_a_star$Group == 1, -c(which(names(D_a_star) %in% c("Y", "Group")))]), 
+      D_a_star_star$Y[D_a_star_star$Group == 0], 
+      D_a_star$Y[D_a_star$Group == 0], 
+      D_a_star_star$Y[D_a_star_star$Group == 1], 
+      D_a_star$Y[D_a_star$Group == 1], 
+      est.method, seed
+    )
+    
+    r_X <- 1 / ratios$g22.est
+    
+    # Predict on D_a*
+    predictions <- predict(classifier, newdata = D_a_star[, -which(names(D_a_star) == "Y")], type = "response")
+    
+    # Calculate A_1 and A_2
+    A_1 <- mean(ifelse(predictions[D_a_star$Group == 0] > 0.5, 1, 0))
+    A_2 <- mean(r_X * ifelse(predictions[D_a_star$Group == 1] <= 0.5, 1, 0))
+    
+    # Calculate variances
+    var_1 <- var(ifelse(predictions[D_a_star$Group == 0] > 0.5, 1, 0))
+    var_2 <- var(r_X * ifelse(predictions[D_a_star$Group == 1] <= 0.5, 1, 0))
+    
+    # Calculate Acc for this fold
+    Acc_cv[i] <- sqrt(length(test_indices)) * (A_1 + A_2 - 1) / sqrt(var_1 + var_2)
   }
   
-  # Determine if we reject the null hypothesis
-  if (p_value < alpha) {
-    rejection <- 1
-  }
+  # Calculate final test statistic
+  Acc_final <- sum(Acc_cv) / sqrt(K)
+  
+  # Calculate p-value and make decision
+  p_value <- 1 - pnorm(Acc_final)
+  rejection <- as.integer(p_value < alpha)
   
   return(rejection)
 }
@@ -534,6 +543,7 @@ PCM_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, regr.method =
     
     if (tilde_n1 > n1 || tilde_n2 > n2) {
       rejection <- 0
+      print("tilde_n1 > n1 || tilde_n2 > n2")
       return(rejection)
     } else {
       x1_sample <- x1[sample(1:nrow(x1), tilde_n1, replace = FALSE), , drop = FALSE]
@@ -697,14 +707,14 @@ WGSC_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_r
   return(rejection)
 }
 
-RCIT_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, alg1 = TRUE, seed = NULL, ...) {
+RCIT_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, alg1 = FALSE, seed = NULL, ...) {
   if (!is.null(seed)) {
     set.seed(seed)
   }
   rejection <- 0
   n1 <- length(y1); n2 <- length(y2)
   
-  if (alg1) {
+  if (alg1 == TRUE) {
     alg1_res <- apply_alg1(x1, x2, y1, y2, epsilon)
     tilde_n1 <- alg1_res$tilde_n1
     tilde_n2 <- alg1_res$tilde_n2

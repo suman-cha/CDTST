@@ -25,22 +25,14 @@ g <- function(Z, rho) {
   return(10 + rho * exp(-norm_diff/64))
 }
 
-# Unbounded
+# Data generation functions
 generate_data <- function(n, p, group) {
-  if (p != 10) {
-    stop("p should be exactly 10 for this function.")
-  }
-  
-  if (group == 1) {  
-    c <- rbinom(n, 1, 0.5)
-    x <- c * mvrnorm(n, rep(0, 10), diag(p)) + (1 - c) * mvrnorm(n, c(0.5, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0.5), diag(p))
-  } else if (group == 2) {  
-    c <- rbinom(n, 1, 0.5)
-    x <- c * mvrnorm(n, rep(0, 10), diag(p)) + (1 - c) * mvrnorm(n, rep(0.5, 10), 1.5 * diag(p))
-  }
-  
+  mu <- if (group == 1) c(1, 1, -1, -1, rep(0, p - 4)) else rep(0, p)
+  sigma <- diag(1, p)
+  x <- mvrnorm(n, mu = mu, Sigma = sigma)
   return(x)
 }
+
 
 generate_y <- function(x, rho, is_null) {
   n <- nrow(x)
@@ -64,6 +56,7 @@ generate_y <- function(x, rho, is_null) {
   
   return(y)
 }
+
 
 # Test functions
 c2st_test_functions <- list(

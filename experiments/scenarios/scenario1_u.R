@@ -43,8 +43,8 @@ c2st_test_functions <- list(
 )
 
 cit_test_functions <- list(
-  RCIT_test = RCIT_test,
-  RCoT_test = RCoT_test,
+  # RCIT_test = RCIT_test,
+  # RCoT_test = RCoT_test,
   PCM_test = PCM_test,
   GCM_test = GCM_test,
   WGSC_test = WGSC_test
@@ -56,7 +56,7 @@ n_sims <- 500
 alpha <- 0.05
 d_values <- c(10)
 estimators <- c("LL", "QL", "KLR")
-regressors <- c("lm", "rf", "xgboost")
+regressors <- c("rf")
 
 results_list <- list()
 

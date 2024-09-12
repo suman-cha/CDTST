@@ -31,8 +31,8 @@ Y_norm <- scale(Y)
 
 # Define test functions
 c2st_tests <- list(
-  LinearMMD_test = LinearMMD_test,
-  CLF_test = CLF_test,
+  # LinearMMD_test = LinearMMD_test,
+  # CLF_test = CLF_test,
   CP_test = CP_test,
   CV_LinearMMD_test = CV_LinearMMD_test,
   CV_CLF_test = CV_CLF_test,
@@ -50,7 +50,7 @@ cit_tests <- list(
 all_tests <- c(c2st_tests, cit_tests)
 
 # Parameters
-n_vals <- c(200, 400, 800, 1200, 1600, 2000)
+n_vals <- c(400, 800, 1200, 1600, 2000)
 n_sims <- 500
 
 results_df <- data.frame(
@@ -67,7 +67,7 @@ for (test_name in names(all_tests)) {
   test_type <- if (test_name %in% names(c2st_tests)) "C2ST" else "CIT"
   
   extra_params <- if (test_type == "C2ST") {
-    c("LL", "KLR")
+    c("KLR")
   } else {
     c(TRUE, FALSE)
   }
@@ -116,8 +116,8 @@ for (test_name in names(all_tests)) {
           if (test_type == "C2ST") {
             test_args <- list(x1, x2, y1, y2, est.method = extra_param, seed = seed)
           } else {
-            test_args <- list(x1, x2, y1, y2, regr.method = ranger_reg_method, 
-                              binary.regr.method = ranger_reg_method_binary, 
+            test_args <- list(x1, x2, y1, y2, regr.method = xgboost_reg_method, 
+                              binary.regr.method = xgboost_reg_method_binary, 
                               alg1 = extra_param, seed = seed)
           }
           

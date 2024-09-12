@@ -603,7 +603,7 @@ ranger_reg_method <- function(X, y, mtry = NULL, max.depth = NULL, ...) {
   colnames(W) <- c("y", 1:d)
   m <- ranger::ranger(
     data = W, dependent.variable.name = "y",
-    num.tree = 1000, mtry = mtry, max.depth = max.depth
+    num.tree = 500, mtry = mtry, max.depth = max.depth
   )
   pred_func <- function(X_new) {
     X_new <- as.matrix(X_new)
@@ -692,7 +692,7 @@ ranger_reg_method_binary <- function(X, y, mtry = NULL, max.depth = NULL, ...) {
   
   m <- ranger::ranger(
     data = W, dependent.variable.name = "y",
-    num.tree = 1000, mtry = mtry, max.depth = max.depth,
+    num.tree = 500, mtry = mtry, max.depth = max.depth,
     probability = TRUE, 
     classification = TRUE, 
     ...

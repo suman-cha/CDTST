@@ -430,17 +430,20 @@ apply_alg1 <- function(x1, x2, y1, y2, seed, epsilon=NULL){
   n1 <- length(y1)
   n2 <- length(y2)
   n <- n1 + n2
-  
+
   if (is.null(epsilon)){
     epsilon <- 1/log(n)
   }
-  
+
   k <- 1 - (3 * log(epsilon)) / (2 * n1) - sqrt((1 - (3 * log(epsilon)) / (2 * n1))^2 - 1)
   tilde_n <- floor(k * n)
   set.seed(seed)
   tilde_n1 <- rbinom(1, size = tilde_n, prob = n1 / (n1 + n2))
   tilde_n2 <- tilde_n - tilde_n1
-  
+
+  # cat("tilde_n1: ", tilde_n1, "tilde_n2: ", tilde_n2, "\n")
   return(list(tilde_n1=tilde_n1, tilde_n2=tilde_n2))
 }
+
+
 
