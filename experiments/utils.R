@@ -36,32 +36,6 @@ gaussian.kernel <- function(x, y = NULL, h=1) {
   return(res)
 }
 
-# Laplacian kernel
-laplacian.kernel <- function(x, y, h=1){
-  dist <- sum(abs(x-y))
-  res <- exp(-dist / h)
-  return(res)
-}
-
-# Linear kernel function
-linear.kernel <- function(x, y) {
-  return(sum(x * y))
-}
-
-# Polynomial kernel function
-polynomial.kernel <- function(x, y, degree=3, alpha=1, c=0) {
-  return((alpha * sum(x * y) + c)^degree)
-}
-
-delta.kernel <- function(x, y = NULL) {
-  if (is.null(y)) {
-    stop("Delta kernel requires two inputs for comparison.")
-  } else {
-    res <- as.numeric(x != y)
-  }
-  return(res)
-}
-
 # Median heuristic
 median_heuristic <- function(x12, x22){
   x <- rbind(x12, x22)
@@ -69,60 +43,8 @@ median_heuristic <- function(x12, x22){
   return(median(dists))
 }
 
-cv_bandwidth <- function(x12, x22) {
-  # Combine x12 and x22 into a single matrix
-  X <- rbind(x12, x22)
-  
-  # Perform cross-validation to select the optimal bandwidth
-  h_values <- seq(0.1, 2, by=0.1)
-  best_h <- h_values[1]
-  best_score <- Inf
-  
-  for (h in h_values) {
-    score <- 0
-    for (i in 1:nrow(X)) {
-      x_train <- X[-i, , drop=FALSE]
-      x_test <- X[i, , drop=FALSE]
-      dist <- rowSums((x_train - matrix(x_test, nrow(x_train), ncol(x_train), byrow=TRUE))^2)
-      score <- score + mean(exp(-dist / (2 * h^2)))
-    }
-    if (score < best_score) {
-      best_score <- score
-      best_h <- h
-    }
-  }
-  return(best_h)
-}
-
-# Conditional Energy Distance(CED) 
-CED <- function(x1, x2, y1, y2, h=1){
-  n1 <- length(y1); n2 <- length(y2)
-  x1 <- matrix(x1, nrow=n1)
-  x2 <- matrix(x2, nrow=n2)
-  
-  # kernel density estimation 
-  Kx1 <- sapply(x1, function(x) rowSums(gaussian.kernel(as.matrix(outer(x, x1, "-"), h))))
-  Kx2 <- sapply(x2, function(x) rowSums(gaussian.kernel(as.matrix(outer(x, x2, "-"), h))))
-  
-  # U-stats for CED 
-  U_stat <- function(Kx1, Kx2, y1, y2){
-    n1 <- length(y1); n2 <- length(y2)
-    
-    term1 <- 2/(n1*n2) * sum(outer(y1, y2, function(a,b) abs(a-b)) * Kx1 * Kx2)
-    term2 <- 1/n1^2 * sum(outer(y1, y1, function(a,b) abs(a-b)) * Kx1 * Kx1)
-    term3 <- 1/n2^2 * sum(outer(y2, y2, function(a,b) abs(a-b)) * Kx2 * Kx2)
-    
-    return (term1  - term2 - term3)
-  }
-}
-
-# Conformity score function
-conformity_score <- function(X, U){
-  as.numeric(rowSums(X) < rowSums(U))
-}
-
 # Linear MMD
-MMDl <- function(x12, x22, y12, y22, h_x=1, h_y=1, r_hat, kernel.type="gaussian", seed=NULL){
+MMDl <- function(x12, x22, y12, y22, h_x=1, h_y=1, r_X, seed=NULL){
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -133,31 +55,12 @@ MMDl <- function(x12, x22, y12, y22, h_x=1, h_y=1, r_hat, kernel.type="gaussian"
   S_hat_values <- numeric(m)
 
   for(i in 1:m){
-    if (kernel.type == "discrete") { 
-      k_zz <- gaussian.kernel(x12[i, ], x12[i+m, ], h_x) * delta.kernel(y12[i], y12[i+m])
-      k_ww <- gaussian.kernel(x22[i, ], x22[i+m, ], h_x) * delta.kernel(y22[i], y22[i+m])
-      k_wz <- gaussian.kernel(x22[i, ], x12[i+m, ], h_x) * delta.kernel(y22[i], y12[i+m])
-      k_zw <- gaussian.kernel(x12[i, ], x22[i+m, ], h_x) * delta.kernel(y12[i], y22[i+m])
-    } else if (kernel.type == "gaussian") {
-      k_zz <- gaussian.kernel(x12[i, ], x12[i+m, ], h_x) * gaussian.kernel(y12[i], y12[i+m], h_y)
-      k_ww <- gaussian.kernel(x22[i, ], x22[i+m, ], h_x) * gaussian.kernel(y22[i], y22[i+m], h_y)
-      k_wz <- gaussian.kernel(x22[i, ], x12[i+m, ], h_x) * gaussian.kernel(y22[i], y12[i+m], h_y)
-      k_zw <- gaussian.kernel(x12[i, ], x22[i+m, ], h_x) * gaussian.kernel(y12[i], y22[i+m], h_y)
-    } else if (kernel.type == "linear") { 
-      k_zz <- linear.kernel(x12[i, ], x12[i+m, ]) * linear.kernel(y12[i], y12[i+m])
-      k_ww <- linear.kernel(x22[i, ], x22[i+m, ]) * linear.kernel(y22[i], y22[i+m])
-      k_wz <- linear.kernel(x22[i, ], x12[i+m, ]) * linear.kernel(y22[i], y12[i+m])
-      k_zw <- linear.kernel(x12[i, ], x22[i+m, ]) * linear.kernel(y12[i], y22[i+m])
-    } else if (kernel.type == "polynomial") {
-      k_zz <- polynomial.kernel(x12[i, ], x12[i+m, ]) * polynomial.kernel(y12[i], y12[i+m])
-      k_ww <- polynomial.kernel(x22[i, ], x22[i+m, ]) * polynomial.kernel(y22[i], y22[i+m])
-      k_wz <- polynomial.kernel(x22[i, ], x12[i+m, ]) * polynomial.kernel(y22[i], y12[i+m])
-      k_zw <- polynomial.kernel(x12[i, ], x22[i+m, ]) * polynomial.kernel(y12[i], y22[i+m])
-    } else {
-      stop("Unsupported kernel type")
-    }
-    
-    S_hat_values[i] <- k_zz + r_hat[i]*r_hat[i+m]*k_ww - r_hat[i]*k_wz - r_hat[i+m]*k_zw
+    k_zz <- gaussian.kernel(x12[i, ], x12[i+m, ], h_x) * gaussian.kernel(y12[i], y12[i+m], h_y)
+    k_ww <- gaussian.kernel(x22[i, ], x22[i+m, ], h_x) * gaussian.kernel(y22[i], y22[i+m], h_y)
+    k_wz <- gaussian.kernel(x22[i, ], x12[i+m, ], h_x) * gaussian.kernel(y22[i], y12[i+m], h_y)
+    k_zw <- gaussian.kernel(x12[i, ], x22[i+m, ], h_x) * gaussian.kernel(y12[i], y22[i+m], h_y)
+  
+    S_hat_values[i] <- k_zz + r_X[i]*r_X[i+m]*k_ww - r_X[i]*k_wz - r_X[i+m]*k_zw
   }
   S_bar <- mean(S_hat_values)
   sigma_hat <- sum((S_hat_values - S_bar)^2) / (m - 1)
@@ -166,7 +69,9 @@ MMDl <- function(x12, x22, y12, y22, h_x=1, h_y=1, r_hat, kernel.type="gaussian"
 }
 
 estimate_r <- function(x11, x12, x21, x22, y11, y12, y21, y22, est.method="LL", seed=NULL){
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   
   n11 <- length(y11); n12 <- length(y12)
   n21 <- length(y21); n22 <- length(y22)
@@ -213,7 +118,7 @@ estimate_r <- function(x11, x12, x21, x22, y11, y12, y21, y22, est.method="LL", 
     xy.fit <- cbind(rbind(x11, x21), c(y11, y21))
     data.fit <- constructData(xy.fit, label.fit)
     klrlearner <- constructKlogRegLearner()
-    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.0005, tol=10e-6, maxiter=500)
+    params <- list(kernel='rbfdot', sigma=0.005, lambda=0.0005, tol=1e-6, maxiter=500)
     fit.joint <- klrlearner$learn(data.fit, params)
     
     x.fit <- rbind(x11, x21)
@@ -304,8 +209,12 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
     }
   } else if(type == "QL") {
     # Quadratic Logistic Regression
-    data_poly <- data.frame(poly(as.matrix(data[, !names(data) %in% "class"]), degree = 2, raw = TRUE))
+    data_numeric <- data.frame(lapply(data[, !names(data) %in% "class"], as.numeric))
+    data_poly <- data.frame(poly(data_numeric, degree = 2, raw = TRUE))
     data_poly$class <- data$class
+    
+    # data_poly <- data.frame(poly(as.matrix(data[, !names(data) %in% "class"]), degree = 2, raw = TRUE))
+    # data_poly$class <- data$class
     model <- glm(class ~ ., data = data_poly, family = "binomial")
     
     marg_ratio <- function(x) {
@@ -320,7 +229,7 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
     
     # Construct the KLR learner
     klrlearner <- constructKlogRegLearner()
-    params <- list(kernel = 'rbfdot', sigma = 0.005, lambda = 0.05 / nrow(data), 
+    params <- list(kernel = 'rbfdot', sigma=0.005, lambda=0.0005, 
                    tol = 1e-6, maxiter = 500)
     
     # Train the model
@@ -426,7 +335,7 @@ estimate_joint_ratio <- function(data, type) {
 }
 
 # Algorithm 1
-apply_alg1 <- function(x1, x2, y1, y2, seed, epsilon=NULL){
+apply_alg1 <- function(x1, x2, y1, y2, seed=NULL, epsilon=NULL){
   n1 <- length(y1)
   n2 <- length(y2)
   n <- n1 + n2
@@ -437,7 +346,11 @@ apply_alg1 <- function(x1, x2, y1, y2, seed, epsilon=NULL){
 
   k <- 1 - (3 * log(epsilon)) / (2 * n1) - sqrt((1 - (3 * log(epsilon)) / (2 * n1))^2 - 1)
   tilde_n <- floor(k * n)
-  set.seed(seed)
+  # print(tilde_n)
+  if (!is.null(seed)){
+    set.seed(seed)
+    # cat("seed is set to ", seed, "\n")
+  }
   tilde_n1 <- rbinom(1, size = tilde_n, prob = n1 / (n1 + n2))
   tilde_n2 <- tilde_n - tilde_n1
 
