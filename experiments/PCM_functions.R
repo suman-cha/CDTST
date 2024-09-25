@@ -3,105 +3,6 @@ suppressPackageStartupMessages({
   library(CondIndTests)
 })
 
-pcm_test <- function(Y, X, Z, reg_method, gtilde_method = NULL,
-                     vhat_reg_method = NULL, var_min = 0.01,
-                     reg_params = list()) {
-  #' reg_params is a list containing optional regression parameters for "mhat",
-  #' "mtilde", "ghat", "gtilde", "vhat" and "mhat_fhat"
-  
-  
-  Y <- as.numeric(Y)
-  n <- length(Y)
-  X <- as.matrix(X)
-  Z <- as.matrix(Z)
-  
-  direction_indices <- sample(1:n, n / 2)
-  main_indices <- sample(setdiff(1:n, direction_indices))
-  
-  X_dir <- X[direction_indices, ]
-  Z_dir <- Z[direction_indices, ]
-  Y_dir <- Y[direction_indices]
-  
-  ghat <- do.call(reg_method, c(
-    list(X = cbind(X_dir, Z_dir), y = Y_dir),
-    reg_params[["ghat"]]
-  ))
-  
-  if (is.null(gtilde_method)) {
-    gtilde <- function(X, Z) ghat(cbind(X, Z))
-  } else {
-    gtilde <- do.call(gtilde_method, c(
-      list(X = X_dir, Z = Z_dir, Y = Y_dir),
-      reg_params[["gtilde"]]
-    ))
-  }
-  ghat_dir <- ghat(cbind(X_dir, Z_dir))
-  gtilde_dir <- gtilde(X_dir, Z_dir)
-  
-  mtilde <- do.call(reg_method, c(
-    list(X = Z_dir, y = ghat_dir),
-    reg_params[["mtilde"]]
-  ))
-  mtilde_dir <- mtilde(Z_dir)
-  
-  htilde_dir <- gtilde_dir - mtilde_dir
-  
-  rho <- mean((Y_dir - ghat_dir + gtilde_dir - mtilde_dir) * htilde_dir)
-  sgn <- ifelse((rho < 0), -1, 1)
-  
-  sqr_resid_dir <- (Y_dir - ghat_dir)^2
-  if (is.null(vhat_reg_method)) {
-    vtilde <- do.call(
-      reg_method,
-      c(
-        list(X = cbind(X_dir, Z_dir), y = sqr_resid_dir),
-        reg_params[["vhat"]]
-      )
-    )
-  } else {
-    vtilde <- do.call(
-      vhat_reg_method,
-      c(
-        list(X = cbind(X_dir, Z_dir), y = sqr_resid_dir),
-        reg_params[["vhat"]]
-      )
-    )
-  }
-  vtilde_dir <- vtilde(cbind(X_dir, Z_dir))
-  a <- function(c) mean(sqr_resid_dir / (pmax(vtilde_dir, 0) + c))
-  
-  if (a(0) <= 1) {
-    chat <- 0
-  } else {
-    chat <- uniroot(function(c) a(c) - 1, c(0, 10), extendInt = "yes")$root
-  }
-  vhat <- function(X, Z) pmax(vtilde(cbind(X, Z)) + chat, var_min)
-  
-  Z_main <- Z[main_indices, ]
-  X_main <- X[main_indices, ]
-  Y_main <- Y[main_indices]
-  
-  fhat_main <- sgn * (gtilde(X_main, Z_main) - mtilde(Z_main)) /
-    vhat(X_main, Z_main)
-  
-  mhat <- do.call(reg_method, c(
-    list(X = Z_main, y = Y_main),
-    reg_params[["mhat"]]
-  ))
-  eps <- Y_main - mhat(Z_main)
-  
-  mhat_fhat <- do.call(reg_method, c(
-    list(X = Z_main, y = fhat_main),
-    reg_params[["mhat_fhat"]]
-  ))
-  xi <- fhat_main - mhat_fhat(Z_main)
-  
-  
-  R <- xi * eps
-  test_statistic <- sqrt(length(R)) * mean(R) / stats::sd(R)
-  return(1 - pnorm(test_statistic))
-}
-
 pcm_test_binary <- function(Y, X, Z, reg_method, binary_reg_method,
                             var_min = 0.01, reg_params = list(), seed=NULL) {
   #' reg_params is a list containing optional regression parameters for "mhat",
@@ -181,72 +82,6 @@ pcm_test_binary <- function(Y, X, Z, reg_method, binary_reg_method,
   return(1 - pnorm(test_statistic))
 }
 
-wgsc <- function(
-    Y, X, Z, reg_method, no_crossfit = FALSE,
-    reg_params = list()) {
-  #' reg params is a list containing optional regression parameters for "ghat",
-  #' "mtilde"
-  n <- length(Y)
-  Z <- as.matrix(Z)
-  X <- as.matrix(X)
-  
-  full_fitted <- numeric(n)
-  reduced_fitted <- numeric(n)
-  data_folds <- sample(c(
-    rep(1, floor(n / 4)), rep(2, floor(n / 4)),
-    rep(3, floor(n / 4)), rep(4, n - 3 * floor(n / 4))
-  ))
-  sample_splitting_folds <- vimp::make_folds(unique(data_folds), V = 2)
-  if (no_crossfit) {
-    full_fitted <- do.call(reg_method, c(
-      list(X = cbind(X, Z), y = Y),
-      reg_params[["ghat"]]
-    ))(cbind(X, Z))
-    reduced_fitted <- do.call(reg_method, c(
-      list(X = Z, y = full_fitted),
-      reg_params[["mtilde"]]
-    ))(Z)
-  } else {
-    for (j in 1:4) {
-      full_fit <- do.call(
-        reg_method,
-        c(
-          list(
-            X = cbind(X, Z)[data_folds != j, ],
-            y = Y[data_folds != j]
-          ),
-          reg_params[["ghat"]]
-        )
-      )
-      full_fitted[data_folds == j] <- full_fit(cbind(X, Z)[data_folds == j, ])
-      reduced_fit <- do.call(
-        reg_method,
-        c(
-          list(
-            X = Z[data_folds != j, ],
-            y = full_fit(cbind(X, Z)[data_folds != j, ])
-          ),
-          reg_params[["mtilde"]]
-        )
-      )
-      reduced_fitted[data_folds == j] <- reduced_fit(Z[data_folds == j, ])
-    }
-  }
-  
-  
-  suppressWarnings(
-    est <- vimp::cv_vim(
-      Y = Y, cross_fitted_f1 = full_fitted,
-      cross_fitted_f2 = reduced_fitted, V = 2, type = "r_squared",
-      cross_fitting_folds = data_folds,
-      sample_splitting_folds = sample_splitting_folds,
-      run_regression = FALSE, alpha = 0.05
-    )
-  )
-  return(est$p_value)
-}
-
-
 wgsc_binary <- function(
     Y, X, Z, reg_method, binary_reg_method,
     reg_params = list(), seed = NULL) {
@@ -306,6 +141,164 @@ wgsc_binary <- function(
   )
   return(est$p_value)
 }
+
+gcm_test_binary <- function(
+    Y, X, Z, reg_method, binary_reg_method,
+    reg_params = list(), seed=NULL) {
+  if (!is.null(seed)){
+    set.seed(seed)
+  }
+  #' Copied from wgcm.fix
+  #' reg params is a list containing optional regression parameters for "mhat",
+  #' "X_on_Z"
+  n <- length(Y)
+  X_on_Z <- do.call(reg_method, c(list(X = Z, y = X), reg_params[["X_on_Z"]], seed=seed))
+  eps <- X - X_on_Z(Z)
+  mhat <- do.call(binary_reg_method, c(
+    list(X = Z, y = Y),
+    reg_params[["mhat"]], seed=seed
+  ))
+  xi <- Y - mhat(Z)
+  R <- eps * xi
+  
+  p_gcm <- 2 * pnorm(-abs(mean(R) / sd(R) * sqrt(n)))
+  return(p_gcm)
+}
+
+
+lm_reg_method <- function(X, y, seed=NULL, ...) {
+  n <- length(y)
+  X <- as.matrix(X, nrow = n)
+  m <- lm(y ~ X)
+  return(
+    function(X_new) {
+      X_new <- as.matrix(X_new)
+      as.numeric(predict(m, list(X = X_new)))
+    }
+  )
+}
+ranger_reg_method <- function(X, y, mtry = NULL, max.depth = 6, seed=NULL, ...) {
+  if(is.null(seed)){
+    set.seed(seed)
+  }
+  n <- length(y)
+  X <- as.matrix(X, nrow = n)
+  d <- dim(X)[2]
+  if (is.null(mtry)) {
+    mtry <- d
+  }
+  W <- cbind(y, X)
+  colnames(W) <- c("y", 1:d)
+  m <- ranger::ranger(
+    data = W, dependent.variable.name = "y",
+    num.tree = 100, mtry = mtry, seed=seed
+  )
+  pred_func <- function(X_new) {
+    X_new <- as.matrix(X_new)
+    d <- dim(X_new)[2]
+    colnames(X_new) <- as.character(1:d)
+    as.numeric(predict(m, X_new, seed=seed)$predictions)
+  }
+  return(pred_func)
+}
+
+xgboost_reg_method <- function(X, y, max.depth = 6, eta = 0.3, nrounds = 100, seed=NULL, ...) {
+  if(!is.null(seed)){
+    set.seed(seed)
+  }
+  X <- as.matrix(X)
+  colnames(X) <- paste0("V", 1:ncol(X))
+  dtrain <- xgb.DMatrix(data = X, label = y)
+  
+  param <- list(max_depth = max.depth, eta = eta, objective = "reg:squarederror")
+  
+  m <- xgb.train(params = param, data = dtrain, nrounds = nrounds)
+  
+  pred_func <- function(X_new) {
+    X_new <- as.matrix(X_new)
+    colnames(X_new) <- colnames(X)  
+    as.numeric(predict(m, X_new, seed=seed))
+  }
+  
+  attr(pred_func, "model") <- m
+  return(pred_func)
+}
+
+lm_reg_method_binary <- function(X, y, seed=NULL, ...) {
+  n <- length(y)
+  X <- as.matrix(X, nrow = n)
+  
+  m <- glm(y ~ X, family = binomial, ...)
+  
+  return(
+    function(X_new) {
+      X_new <- as.matrix(X_new)
+      as.numeric(predict(m, newdata=data.frame(X=X_new), type="response"))
+    }
+  )
+}
+
+xgboost_reg_method_binary <- function(X, y, max.depth = 6, eta = 0.3, nrounds = 100, seed=NULL, ...) {
+  if(!is.null(seed)){
+    set.seed(seed)
+  }
+  
+  X <- as.matrix(X)
+  colnames(X) <- paste0("V", 1:ncol(X))
+  
+  dtrain <- xgb.DMatrix(data = X, label = y)
+  param <- list(max_depth = max.depth, eta = eta, objective = "binary:logistic")
+  m <- xgb.train(params = param, data = dtrain, nrounds = nrounds)
+  
+  pred_func <- function(X_new) {
+    X_new <- as.matrix(X_new)
+    colnames(X_new) <- colnames(X)  
+    as.numeric(predict(m, X_new, seed=seed))
+  }
+  
+  attr(pred_func, "model") <- m
+  return(pred_func)
+}
+ranger_reg_method_binary <- function(X, y, mtry = NULL, max.depth = 6, seed=NULL, ...) {
+  if(!is.null(seed)){
+    set.seed(seed)
+  }
+  n <- length(y)
+  y <- factor(y)
+  X <- as.matrix(X, nrow = n)
+  d <- dim(X)[2]
+  
+  if (is.null(mtry)) {
+    mtry <- d
+  }
+  
+  colnames(X) <- paste0("V", 1:d)
+  W <- cbind(y, X)
+  colnames(W) <- c("y", colnames(X))
+  
+  m <- ranger::ranger(
+    data = W, dependent.variable.name = "y",
+    num.tree = 100, mtry = mtry,
+    probability = TRUE,
+    classification = TRUE, 
+    seed=seed,
+    ...
+  )
+  
+  pred_func <- function(X_new) {
+    X_new <- as.matrix(X_new)
+    colnames(X_new) <- colnames(X)  
+    preds <- predict(m, data=X_new, seed=seed)$predictions
+    as.numeric(preds[, 2])  
+  }
+  
+  return(pred_func)
+}
+
+
+
+
+
 
 wGCM_est <- function(Y, X, Z, reg_method, reg_params = list()) {
   #' reg params is a list containing optional regression parameters for "mhat",
@@ -452,6 +445,170 @@ kci_test <- function(Y, X, Z, GP = TRUE) {
   return(CondIndTests::KCI(Y, X, Z, GP = GP)$pvalue)
 }
 
+pcm_test <- function(Y, X, Z, reg_method, gtilde_method = NULL,
+                     vhat_reg_method = NULL, var_min = 0.01,
+                     reg_params = list()) {
+  #' reg_params is a list containing optional regression parameters for "mhat",
+  #' "mtilde", "ghat", "gtilde", "vhat" and "mhat_fhat"
+  
+  
+  Y <- as.numeric(Y)
+  n <- length(Y)
+  X <- as.matrix(X)
+  Z <- as.matrix(Z)
+  
+  direction_indices <- sample(1:n, n / 2)
+  main_indices <- sample(setdiff(1:n, direction_indices))
+  
+  X_dir <- X[direction_indices, ]
+  Z_dir <- Z[direction_indices, ]
+  Y_dir <- Y[direction_indices]
+  
+  ghat <- do.call(reg_method, c(
+    list(X = cbind(X_dir, Z_dir), y = Y_dir),
+    reg_params[["ghat"]]
+  ))
+  
+  if (is.null(gtilde_method)) {
+    gtilde <- function(X, Z) ghat(cbind(X, Z))
+  } else {
+    gtilde <- do.call(gtilde_method, c(
+      list(X = X_dir, Z = Z_dir, Y = Y_dir),
+      reg_params[["gtilde"]]
+    ))
+  }
+  ghat_dir <- ghat(cbind(X_dir, Z_dir))
+  gtilde_dir <- gtilde(X_dir, Z_dir)
+  
+  mtilde <- do.call(reg_method, c(
+    list(X = Z_dir, y = ghat_dir),
+    reg_params[["mtilde"]]
+  ))
+  mtilde_dir <- mtilde(Z_dir)
+  
+  htilde_dir <- gtilde_dir - mtilde_dir
+  
+  rho <- mean((Y_dir - ghat_dir + gtilde_dir - mtilde_dir) * htilde_dir)
+  sgn <- ifelse((rho < 0), -1, 1)
+  
+  sqr_resid_dir <- (Y_dir - ghat_dir)^2
+  if (is.null(vhat_reg_method)) {
+    vtilde <- do.call(
+      reg_method,
+      c(
+        list(X = cbind(X_dir, Z_dir), y = sqr_resid_dir),
+        reg_params[["vhat"]]
+      )
+    )
+  } else {
+    vtilde <- do.call(
+      vhat_reg_method,
+      c(
+        list(X = cbind(X_dir, Z_dir), y = sqr_resid_dir),
+        reg_params[["vhat"]]
+      )
+    )
+  }
+  vtilde_dir <- vtilde(cbind(X_dir, Z_dir))
+  a <- function(c) mean(sqr_resid_dir / (pmax(vtilde_dir, 0) + c))
+  
+  if (a(0) <= 1) {
+    chat <- 0
+  } else {
+    chat <- uniroot(function(c) a(c) - 1, c(0, 10), extendInt = "yes")$root
+  }
+  vhat <- function(X, Z) pmax(vtilde(cbind(X, Z)) + chat, var_min)
+  
+  Z_main <- Z[main_indices, ]
+  X_main <- X[main_indices, ]
+  Y_main <- Y[main_indices]
+  
+  fhat_main <- sgn * (gtilde(X_main, Z_main) - mtilde(Z_main)) /
+    vhat(X_main, Z_main)
+  
+  mhat <- do.call(reg_method, c(
+    list(X = Z_main, y = Y_main),
+    reg_params[["mhat"]]
+  ))
+  eps <- Y_main - mhat(Z_main)
+  
+  mhat_fhat <- do.call(reg_method, c(
+    list(X = Z_main, y = fhat_main),
+    reg_params[["mhat_fhat"]]
+  ))
+  xi <- fhat_main - mhat_fhat(Z_main)
+  
+  
+  R <- xi * eps
+  test_statistic <- sqrt(length(R)) * mean(R) / stats::sd(R)
+  return(1 - pnorm(test_statistic))
+}
+
+wgsc <- function(
+    Y, X, Z, reg_method, no_crossfit = FALSE,
+    reg_params = list()) {
+  #' reg params is a list containing optional regression parameters for "ghat",
+  #' "mtilde"
+  n <- length(Y)
+  Z <- as.matrix(Z)
+  X <- as.matrix(X)
+  
+  full_fitted <- numeric(n)
+  reduced_fitted <- numeric(n)
+  data_folds <- sample(c(
+    rep(1, floor(n / 4)), rep(2, floor(n / 4)),
+    rep(3, floor(n / 4)), rep(4, n - 3 * floor(n / 4))
+  ))
+  sample_splitting_folds <- vimp::make_folds(unique(data_folds), V = 2)
+  if (no_crossfit) {
+    full_fitted <- do.call(reg_method, c(
+      list(X = cbind(X, Z), y = Y),
+      reg_params[["ghat"]]
+    ))(cbind(X, Z))
+    reduced_fitted <- do.call(reg_method, c(
+      list(X = Z, y = full_fitted),
+      reg_params[["mtilde"]]
+    ))(Z)
+  } else {
+    for (j in 1:4) {
+      full_fit <- do.call(
+        reg_method,
+        c(
+          list(
+            X = cbind(X, Z)[data_folds != j, ],
+            y = Y[data_folds != j]
+          ),
+          reg_params[["ghat"]]
+        )
+      )
+      full_fitted[data_folds == j] <- full_fit(cbind(X, Z)[data_folds == j, ])
+      reduced_fit <- do.call(
+        reg_method,
+        c(
+          list(
+            X = Z[data_folds != j, ],
+            y = full_fit(cbind(X, Z)[data_folds != j, ])
+          ),
+          reg_params[["mtilde"]]
+        )
+      )
+      reduced_fitted[data_folds == j] <- reduced_fit(Z[data_folds == j, ])
+    }
+  }
+  
+  
+  suppressWarnings(
+    est <- vimp::cv_vim(
+      Y = Y, cross_fitted_f1 = full_fitted,
+      cross_fitted_f2 = reduced_fitted, V = 2, type = "r_squared",
+      cross_fitting_folds = data_folds,
+      sample_splitting_folds = sample_splitting_folds,
+      run_regression = FALSE, alpha = 0.05
+    )
+  )
+  return(est$p_value)
+}
+
 gcm_test <- function(Y, X, Z, reg_method, reg_params = list()) {
   #' reg params is a list containing optional regression parameters for "mhat",
   #' "X_on_Z"
@@ -459,29 +616,6 @@ gcm_test <- function(Y, X, Z, reg_method, reg_params = list()) {
   X_on_Z <- do.call(reg_method, c(list(X = Z, y = X), reg_params[["X_on_Z"]]))
   eps <- X - X_on_Z(Z)
   mhat <- do.call(reg_method, c(list(X = Z, y = Y), reg_params[["mhat"]]))
-  xi <- Y - mhat(Z)
-  R <- eps * xi
-  
-  p_gcm <- 2 * pnorm(-abs(mean(R) / sd(R) * sqrt(n)))
-  return(p_gcm)
-}
-
-gcm_test_binary <- function(
-    Y, X, Z, reg_method, binary_reg_method,
-    reg_params = list(), seed=NULL) {
-  if (!is.null(seed)){
-    set.seed(seed)
-  }
-  #' Copied from wgcm.fix
-  #' reg params is a list containing optional regression parameters for "mhat",
-  #' "X_on_Z"
-  n <- length(Y)
-  X_on_Z <- do.call(reg_method, c(list(X = Z, y = X), reg_params[["X_on_Z"]], seed=seed))
-  eps <- X - X_on_Z(Z)
-  mhat <- do.call(binary_reg_method, c(
-    list(X = Z, y = Y),
-    reg_params[["mhat"]], seed=seed
-  ))
   xi <- Y - mhat(Z)
   R <- eps * xi
   
@@ -540,28 +674,6 @@ gam_reg_method <- function(X, y, ...) {
   )
 }
 
-xgboost_reg_method <- function(X, y, max.depth = 6, eta = 0.3, nrounds = 50, seed=NULL, ...) {
-  if(!is.null(seed)){
-    set.seed(seed)
-  }
-  X <- as.matrix(X)
-  colnames(X) <- paste0("V", 1:ncol(X))
-  dtrain <- xgb.DMatrix(data = X, label = y)
-  
-  param <- list(max_depth = max.depth, eta = eta, objective = "reg:squarederror", seed=seed)
-  
-  m <- xgb.train(params = param, data = dtrain, nrounds = nrounds)
-  
-  pred_func <- function(X_new) {
-    X_new <- as.matrix(X_new)
-    colnames(X_new) <- colnames(X)  
-    as.numeric(predict(m, X_new, seed=seed))
-  }
-  
-  attr(pred_func, "model") <- m
-  return(pred_func)
-}
-
 gam_vhat_reg_method <- function(X, y, ...) {
   n <- length(y)
   X <- as.matrix(X, nrow = n)
@@ -577,22 +689,6 @@ gam_vhat_reg_method <- function(X, y, ...) {
   )
 }
 
-
-lm_reg_method <- function(X, y, seed=NULL, ...) {
-  if(!is.null(seed)){
-    set.seed(seed)
-  }
-  n <- length(y)
-  X <- as.matrix(X, nrow = n)
-  m <- lm(y ~ X)
-  return(
-    function(X_new) {
-      X_new <- as.matrix(X_new)
-      as.numeric(predict(m, list(X = X_new), seed=seed))
-    }
-  )
-}
-
 lm_gtilde <- function(X, Z, Y) {
   n <- length(Y)
   Z <- as.matrix(Z, nrow = n)
@@ -605,31 +701,6 @@ lm_gtilde <- function(X, Z, Y) {
       )[, 2]
     }
   )
-}
-
-ranger_reg_method <- function(X, y, mtry = NULL, max.depth = NULL, seed=NULL, ...) {
-  if(is.null(seed)){
-    set.seed(seed)
-  }
-  n <- length(y)
-  X <- as.matrix(X, nrow = n)
-  d <- dim(X)[2]
-  if (is.null(mtry)) {
-    mtry <- d
-  }
-  W <- cbind(y, X)
-  colnames(W) <- c("y", 1:d)
-  m <- ranger::ranger(
-    data = W, dependent.variable.name = "y",
-    num.tree = 500, mtry = mtry, max.depth = max.depth, seed=seed
-  )
-  pred_func <- function(X_new) {
-    X_new <- as.matrix(X_new)
-    d <- dim(X_new)[2]
-    colnames(X_new) <- as.character(1:d)
-    as.numeric(predict(m, X_new, seed=seed)$predictions)
-  }
-  return(pred_func)
 }
 
 gam_reg_method_binary <- function(X, y, ...) {
@@ -651,81 +722,3 @@ gam_reg_method_binary <- function(X, y, ...) {
     pred_func
   )
 }
-
-lm_reg_method_binary <- function(X, y, seed=NULL, ...) {
-  if(!is.null(seed)){
-    set.seed(seed)
-  }
-  n <- length(y)
-  X <- as.matrix(X, nrow = n)
-  
-  m <- glm(y ~ X, family = binomial, ...)
-  
-  return(
-    function(X_new) {
-      X_new <- as.matrix(X_new)
-      as.numeric(predict(m, newdata=data.frame(X=X_new), type="response", seed=seed))
-    }
-  )
-}
-
-
-xgboost_reg_method_binary <- function(X, y, max.depth = 6, eta = 0.3, nrounds = 50, seed=NULL, ...) {
-  if(!is.null(seed)){
-    set.seed(seed)
-  }
-  
-  X <- as.matrix(X)
-  colnames(X) <- paste0("V", 1:ncol(X))
-  
-  dtrain <- xgb.DMatrix(data = X, label = y)
-  param <- list(max_depth = max.depth, eta = eta, objective = "binary:logistic", seed=seed)
-  m <- xgb.train(params = param, data = dtrain, nrounds = nrounds)
-  
-  pred_func <- function(X_new) {
-    X_new <- as.matrix(X_new)
-    colnames(X_new) <- colnames(X)  
-    as.numeric(predict(m, X_new, seed=seed))
-  }
-  
-  attr(pred_func, "model") <- m
-  return(pred_func)
-}
-
-
-ranger_reg_method_binary <- function(X, y, mtry = NULL, max.depth = NULL, seed=NULL, ...) {
-  if(!is.null(seed)){
-    set.seed(seed)
-  }
-  n <- length(y)
-  y <- factor(y)
-  X <- as.matrix(X, nrow = n)
-  d <- dim(X)[2]
-  
-  if (is.null(mtry)) {
-    mtry <- d
-  }
-  
-  colnames(X) <- paste0("V", 1:d)
-  W <- cbind(y, X)
-  colnames(W) <- c("y", colnames(X))
-  
-  m <- ranger::ranger(
-    data = W, dependent.variable.name = "y",
-    num.tree = 500, mtry = mtry, max.depth = max.depth,
-    probability = TRUE, 
-    classification = TRUE, 
-    seed=seed,
-    ...
-  )
-  
-  pred_func <- function(X_new) {
-    X_new <- as.matrix(X_new)
-    colnames(X_new) <- colnames(X)  
-    preds <- predict(m, data=X_new, seed=seed)$predictions
-    as.numeric(preds[, 2])  
-  }
-  
-  return(pred_func)
-}
-

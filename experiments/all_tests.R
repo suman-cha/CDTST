@@ -41,6 +41,7 @@ for (pkg in required_pkgs){
 # install_github("ericstrobl/RCIT")
 # library(RCIT)
 
+# Density Ratio-based Test (DRT)
 # Debiased conditional two-sample test (Chen and Lei 2024)
 debiased_test <- function(x1, x2, y1, y2, alpha=0.05, est.method="LL", S=2, seed=NULL) {
   if (!is.null(seed)) {
@@ -161,7 +162,6 @@ debiased_test <- function(x1, x2, y1, y2, alpha=0.05, est.method="LL", S=2, seed
   
   return(rejection)
 }
-
 # Hu and Lei (2024)
 CP_test <- function(x1, x2, y1, y2, prop=0.5, alpha=0.05, est.method="LL", seed=NULL){
   if (!is.null(seed)) {
@@ -184,7 +184,6 @@ CP_test <- function(x1, x2, y1, y2, prop=0.5, alpha=0.05, est.method="LL", seed=
   }
   return(rejection)
 }
-
 LinearMMD_test <- function(x1, x2, y1, y2, prop=0.5, alpha=0.05, bandwidth=1, est.method="LL", seed=NULL){
   if (!is.null(seed)) {
     set.seed(seed)
@@ -214,7 +213,6 @@ LinearMMD_test <- function(x1, x2, y1, y2, prop=0.5, alpha=0.05, bandwidth=1, es
   }
   return(rejection)
 }
-
 CV_LinearMMD_test <- function(x1, x2, y1, y2, prop=0.5, alpha=0.05, bandwidth=1, K=2, est.method="LL", seed=NULL) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -253,7 +251,6 @@ CV_LinearMMD_test <- function(x1, x2, y1, y2, prop=0.5, alpha=0.05, bandwidth=1,
   rejection <- if (pvalue < alpha) 1 else 0
   return(rejection)
 }
-
 CLF_test <- function(x1, x2, y1, y2, split.prop=0.5, est.prop=0.8, alpha=0.05, est.method="LL", seed=NULL) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -315,8 +312,6 @@ CLF_test <- function(x1, x2, y1, y2, split.prop=0.5, est.prop=0.8, alpha=0.05, e
   }
   return(rejection)
 }
-
-
 CV_CLF_test <- function(x1, x2, y1, y2, est.prop=0.8, alpha=0.05, K=2, est.method="LL", seed=NULL) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -393,7 +388,6 @@ CV_CLF_test <- function(x1, x2, y1, y2, est.prop=0.8, alpha=0.05, K=2, est.metho
   
   return(rejection)
 }
-
 CLF_test2 <- function(x1, x2, y1, y2, prop = 0.5, alpha = 0.05, est.method = "LL", seed = NULL, K = 5) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -478,7 +472,7 @@ CLF_test2 <- function(x1, x2, y1, y2, prop = 0.5, alpha = 0.05, est.method = "LL
 
 
 # Conditional Independence Test (CIT)
-GCM_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_reg_method, binary.regr.method = lm_reg_method_binary, alg1=TRUE, seed=NULL){
+GCM_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=ranger_reg_method, binary.regr.method = ranger_reg_method_binary, alg1=TRUE, seed=NULL){
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -520,9 +514,7 @@ GCM_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_re
   rejection <- ifelse(gcm.pvalue < alpha, 1, 0)
   return(rejection)
 }
-
-
-PCM_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, regr.method = lm_reg_method, binary.regr.method = lm_reg_method_binary, alg1 = TRUE, seed=NULL) {
+PCM_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, regr.method = ranger_reg_method, binary.regr.method = ranger_reg_method_binary, alg1 = TRUE, seed=NULL) {
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -533,6 +525,8 @@ PCM_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, regr.method =
     alg1_res <- apply_alg1(x1, x2, y1, y2, seed, epsilon)
     tilde_n1 <- alg1_res$tilde_n1
     tilde_n2 <- alg1_res$tilde_n2
+    # tilde_n1 <- min(tilde_n1, tilde_n2)
+    # tilde_n2 <- tilde_n1
     tilde_n <- tilde_n1 + tilde_n2
     
     if (tilde_n1 > n1 || tilde_n2 > n2) {
@@ -564,93 +558,7 @@ PCM_test <- function(x1, x2, y1, y2, alpha = 0.05, epsilon = NULL, regr.method =
   rejection <- ifelse(pcm.pvalue < alpha, 1, 0)
   return(rejection)
 }
-
-KCI_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, GP=TRUE, alg1 = TRUE, seed=NULL){
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-  rejection <- 0
-  n1 <- length(y1); n2 <- length(y2)
-  
-  if (alg1) {
-    alg1_res <- apply_alg1(x1, x2, y1, y2, seed, epsilon)
-    tilde_n1 <- alg1_res$tilde_n1
-    tilde_n2 <- alg1_res$tilde_n2
-    tilde_n <- tilde_n1 + tilde_n2
-    
-    if (tilde_n1 > n1 || tilde_n2 > n2) {
-      print("tilde_n1 > n1 || tilde_n2 > n2")
-      rejection <- 0
-      return(rejection)
-    } else {
-      x1_sample <- x1[sample(1:nrow(x1), tilde_n1, replace = FALSE), , drop = FALSE]
-      x2_sample <- x2[sample(1:nrow(x2), tilde_n2, replace = FALSE), , drop = FALSE]
-      y1_sample <- y1[sample(1:length(y1), tilde_n1, replace = FALSE)]
-      y2_sample <- y2[sample(1:length(y2), tilde_n2, replace = FALSE)]
-      X_merged <- rbind(x1_sample, x2_sample)
-      Y_merged <- c(y1_sample, y2_sample)
-      Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
-      
-      merged_indices <- sample(1:tilde_n, size = tilde_n, replace = FALSE)
-      X_merged <- X_merged[merged_indices, , drop = FALSE]
-      Y_merged <- Y_merged[merged_indices]
-      Z_merged <- Z_merged[merged_indices]
-      kci.pvalue <- kci_test(X = Y_merged, Y = Z_merged, Z = X_merged, GP=GP)
-    }
-  } else {
-    X <- rbind(x1, x2)
-    Y <- c(y1, y2)
-    Z <- c(rep(0, n1), rep(1, n2))
-    kci.pvalue <- kci_test(X = Y, Y = Z, Z = X, GP=GP)
-  }
-  rejection <- ifelse(kci.pvalue < alpha, 1, 0)
-  return(rejection)
-}
-
-WGCM_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_reg_method, binary.regr.method = lm_reg_method_binary, alg1=TRUE, seed=NULL){
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-  rejection <- 0
-  n1 <- length(y1); n2 <- length(y2)
-  
-  if (alg1) {
-    alg1_res <- apply_alg1(x1, x2, y1, y2, seed, epsilon)
-    tilde_n1 <- alg1_res$tilde_n1
-    tilde_n2 <- alg1_res$tilde_n2
-    tilde_n <- tilde_n1 + tilde_n2
-    
-    if (tilde_n1 > n1 || tilde_n2 > n2) {
-      print("tilde_n1 > n1 || tilde_n2 > n2")
-      rejection <- 0
-      return(rejection)
-    } else {
-      x1_sample <- x1[sample(1:nrow(x1), tilde_n1, replace = FALSE), , drop = FALSE]
-      x2_sample <- x2[sample(1:nrow(x2), tilde_n2, replace = FALSE), , drop = FALSE]
-      y1_sample <- y1[sample(1:length(y1), tilde_n1, replace = FALSE)]
-      y2_sample <- y2[sample(1:length(y2), tilde_n2, replace = FALSE)]
-      X_merged <- rbind(x1_sample, x2_sample)
-      Y_merged <- c(y1_sample, y2_sample)
-      Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
-      
-      merged_indices <- sample(1:tilde_n, size = tilde_n, replace = FALSE)
-      X_merged <- X_merged[merged_indices, , drop = FALSE]
-      Y_merged <- Y_merged[merged_indices]
-      Z_merged <- Z_merged[merged_indices]
-      wgcm.pvalue <- wGCM_fix_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
-    }
-  } else{
-    X <- rbind(x1, x2)
-    Y <- c(y1, y2)
-    Z <- c(rep(0, n1), rep(1, n2))
-    wgcm.pvalue <- wGCM_fix_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
-  }
-  
-  rejection <- ifelse(wgcm.pvalue < alpha, 1, 0)
-  return(rejection)
-}
-
-WGSC_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_reg_method, binary.regr.method = lm_reg_method_binary, alg1=TRUE, seed=NULL){
+WGSC_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=xgboost_reg_method, binary.regr.method = xgboost_reg_method_binary, alg1=TRUE, seed=NULL){
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -693,7 +601,6 @@ WGSC_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_r
   }
   return(rejection)
 }
-
 RCIT_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, alg1=TRUE, seed=NULL, ...) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -705,6 +612,8 @@ RCIT_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, alg1=TRUE, seed=
     alg1_res <- apply_alg1(x1, x2, y1, y2, seed, epsilon)
     tilde_n1 <- alg1_res$tilde_n1
     tilde_n2 <- alg1_res$tilde_n2
+    # tilde_n1 <- min(tilde_n1, tilde_n2)
+    # tilde_n2 <- tilde_n1
     tilde_n <- tilde_n1 + tilde_n2
     if (tilde_n1 > n1 || tilde_n2 > n2) {
       print("tilde_n1 > n1 || tilde_n2 > n2")
@@ -735,6 +644,8 @@ RCIT_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, alg1=TRUE, seed=
   rejection <- ifelse(rcit.pvalue < alpha, 1, 0)
   return(rejection)
 }
+
+
 
 RCoT_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, alg1=TRUE, seed=NULL, ...) {
   if (!is.null(seed)) {
@@ -776,5 +687,88 @@ RCoT_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, alg1=TRUE, seed=
   }
   
   rejection <- ifelse(rcot.pvalue < alpha, 1, 0)
+  return(rejection)
+}
+KCI_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, GP=TRUE, alg1 = TRUE, seed=NULL){
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  rejection <- 0
+  n1 <- length(y1); n2 <- length(y2)
+  
+  if (alg1) {
+    alg1_res <- apply_alg1(x1, x2, y1, y2, seed, epsilon)
+    tilde_n1 <- alg1_res$tilde_n1
+    tilde_n2 <- alg1_res$tilde_n2
+    tilde_n <- tilde_n1 + tilde_n2
+    
+    if (tilde_n1 > n1 || tilde_n2 > n2) {
+      print("tilde_n1 > n1 || tilde_n2 > n2")
+      rejection <- 0
+      return(rejection)
+    } else {
+      x1_sample <- x1[sample(1:nrow(x1), tilde_n1, replace = FALSE), , drop = FALSE]
+      x2_sample <- x2[sample(1:nrow(x2), tilde_n2, replace = FALSE), , drop = FALSE]
+      y1_sample <- y1[sample(1:length(y1), tilde_n1, replace = FALSE)]
+      y2_sample <- y2[sample(1:length(y2), tilde_n2, replace = FALSE)]
+      X_merged <- rbind(x1_sample, x2_sample)
+      Y_merged <- c(y1_sample, y2_sample)
+      Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
+      
+      merged_indices <- sample(1:tilde_n, size = tilde_n, replace = FALSE)
+      X_merged <- X_merged[merged_indices, , drop = FALSE]
+      Y_merged <- Y_merged[merged_indices]
+      Z_merged <- Z_merged[merged_indices]
+      kci.pvalue <- kci_test(X = Y_merged, Y = Z_merged, Z = X_merged, GP=GP)
+    }
+  } else {
+    X <- rbind(x1, x2)
+    Y <- c(y1, y2)
+    Z <- c(rep(0, n1), rep(1, n2))
+    kci.pvalue <- kci_test(X = Y, Y = Z, Z = X, GP=GP)
+  }
+  rejection <- ifelse(kci.pvalue < alpha, 1, 0)
+  return(rejection)
+}
+WGCM_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=lm_reg_method, binary.regr.method = lm_reg_method_binary, alg1=TRUE, seed=NULL){
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  rejection <- 0
+  n1 <- length(y1); n2 <- length(y2)
+  
+  if (alg1) {
+    alg1_res <- apply_alg1(x1, x2, y1, y2, seed, epsilon)
+    tilde_n1 <- alg1_res$tilde_n1
+    tilde_n2 <- alg1_res$tilde_n2
+    tilde_n <- tilde_n1 + tilde_n2
+    
+    if (tilde_n1 > n1 || tilde_n2 > n2) {
+      print("tilde_n1 > n1 || tilde_n2 > n2")
+      rejection <- 0
+      return(rejection)
+    } else {
+      x1_sample <- x1[sample(1:nrow(x1), tilde_n1, replace = FALSE), , drop = FALSE]
+      x2_sample <- x2[sample(1:nrow(x2), tilde_n2, replace = FALSE), , drop = FALSE]
+      y1_sample <- y1[sample(1:length(y1), tilde_n1, replace = FALSE)]
+      y2_sample <- y2[sample(1:length(y2), tilde_n2, replace = FALSE)]
+      X_merged <- rbind(x1_sample, x2_sample)
+      Y_merged <- c(y1_sample, y2_sample)
+      Z_merged <- c(rep(0, tilde_n1), rep(1, tilde_n2))
+      
+      merged_indices <- sample(1:tilde_n, size = tilde_n, replace = FALSE)
+      X_merged <- X_merged[merged_indices, , drop = FALSE]
+      Y_merged <- Y_merged[merged_indices]
+      Z_merged <- Z_merged[merged_indices]
+      wgcm.pvalue <- wGCM_fix_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
+    }
+  } else{
+    X <- rbind(x1, x2)
+    Y <- c(y1, y2)
+    Z <- c(rep(0, n1), rep(1, n2))
+    wgcm.pvalue <- wGCM_fix_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
+  }
+  
+  rejection <- ifelse(wgcm.pvalue < alpha, 1, 0)
   return(rejection)
 }

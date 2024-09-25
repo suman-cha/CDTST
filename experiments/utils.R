@@ -10,10 +10,7 @@ required_pkgs <- c("glmnet",
                    "kernlab",
                    "SuperLearner",
                    "CVST",
-                   "densratio",
-                   "parallel",
-                   "doParallel",
-                   "foreach")
+                   "densratio")
 
 install_pkgs <- function(pkgs){
   new_pkgs <- pkgs[!(pkgs %in% installed.packages()[, "Package"])]
@@ -272,7 +269,6 @@ estimate_marginal_ratio <- function(data, n0, n1, type) {
   }
   return(marg_ratio)
 }
-
 # Function to estimate joint density ratio
 estimate_joint_ratio <- function(data, type) {
   if(type == "LL") {
