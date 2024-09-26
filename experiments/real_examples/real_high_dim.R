@@ -143,7 +143,8 @@ for (n in n_values){
             set.seed(seed + n_sims)
             d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
             
-            test_args <- list(d1$x, d2$x, d1$y, d2$y, seed = seed)
+            epsilon <- 1/sqrt(log(n))
+            test_args <- list(d1$x, d2$x, d1$y, d2$y, alg1 = TRUE, epsilon = epsilon, seed = seed)
             
             do.call(test_functions[[test_name]], test_args)
           }, simplify = "array")
