@@ -1,4 +1,4 @@
-# CDTST: General Frameworks for Conditional Two-Sample Testing
+# Cond2ST: General Frameworks for Conditional Two-Sample Testing
 
 This repository contains the code for reproducing the experimental results presented in the paper "General Frameworks for Conditional Two-sample Testing" [link]. 
 The paper introduces general emthodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. 
