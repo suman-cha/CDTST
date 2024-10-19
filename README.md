@@ -24,7 +24,7 @@ The experiments in the paper can be reproduced using the R codes provided in the
    ```sh
    Rscript experiments/scenarios/scenario1u.R
    ```
-   The results will be saved in the `results/` folder for further analysis.
+   The results will be saved in the `results/` folder.
 
 
 
