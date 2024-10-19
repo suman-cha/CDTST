@@ -36,7 +36,7 @@ TBD
 
 ## Contact
 
-For questions or issues regarding the code, please do not hesitate to contact us!:
+For questions or issues regarding the code, please do not hesitate to contact us!
 
 Seongchan Lee* : statchan1106@yonsei.ac.kr
 
