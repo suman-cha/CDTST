@@ -1,7 +1,7 @@
 # Cond2ST: General Frameworks for Conditional Two-Sample Testing
 
 This repository contains the code for reproducing the experimental results presented in the paper "General Frameworks for Conditional Two-sample Testing" [link]. 
-The paper introduces general emthodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. 
+The paper introduces general methodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. We introduce two approaches: (1) converting conditional independence tests to conditional two-sample tests and (2) density ratio-based testing. 
 
 ## Getting Started 
 
@@ -10,21 +10,22 @@ The paper introduces general emthodologies for conditional two-sample testing, a
 To get started with the repository, clone it to your local machine:
 
 ```sh
-git clone https://github.com/suman-cha/CDTST.git
-cd CDTST
+git clone https://github.com/suman-cha/Cond2ST.git
+cd Cond2ST
 ```
 
 ### Running Experiments
 
-The experiments in the paper can be reproduced using the scripts provided in the experiments/ directory. Each script corresponds to an experiment discussed in the paper.
+The experiments in the paper can be reproduced using the R codes provided in the experiments/ directory. Each code corresponds to an experiment discussed in the paper.
 
-1. **Prepare the Data**: The superconductivity dataset used in the real data experiments are included in the `real_examples/data/` folder. Make sure the data is in the correct format before running the scripts.
+1. **Prepare the Data**: The superconductivity dataset used in the real data experiments are included in the `real_examples/data/` folder. Make sure the data is in the correct format before running the scripts. Other simulation data are generated in each code. 
 
 2. **Run Scripts**: Navigate to the `experiments/` folder and run the desired experiment script. For example:
    ```sh
    Rscript experiments/scenarios/scenario1u.R
    ```
    The results will be saved in the `results/` folder for further analysis.
+
 
 
 ## Citation
@@ -37,7 +38,11 @@ TBD
 
 For questions or issues regarding the code, please contact the authors:
 
-TBD 
+Seongchan Lee* : statchan1106@yonsei.ac.kr
+
+Suman Cha* : oldrain123@yonsei.ac.kr 
+
+Ilmun Kim : ilmun@yonsei.ac.kr 
 
 ## License
 
