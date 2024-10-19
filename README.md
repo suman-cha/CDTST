@@ -14,7 +14,7 @@ git clone https://github.com/suman-cha/Cond2ST.git
 cd Cond2ST
 ```
 
-### Running Experiments
+### Run Experiments
 
 The experiments in the paper can be reproduced using the R codes provided in the experiments/ directory. Each code corresponds to an experiment discussed in the paper.
 
