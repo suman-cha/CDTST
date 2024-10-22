@@ -14,8 +14,6 @@ git clone https://github.com/suman-cha/Cond2ST.git
 cd Cond2ST
 ```
 
-## Experiments
-
 ### Requirements
 
 Make sure you have R installed (version 4.0 or higher) along with the necessary packages.
