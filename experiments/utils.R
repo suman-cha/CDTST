@@ -20,7 +20,7 @@ install_pkgs <- function(pkgs){
 }
 
 install_pkgs(required_pkgs)
-source("FunFiles.R")
+source("CP_FunFiles.R")
 
 # Gaussian kernel 
 gaussian.kernel <- function(x, y = NULL, h=1) {
@@ -33,12 +33,6 @@ gaussian.kernel <- function(x, y = NULL, h=1) {
   return(res)
 }
 
-# Median heuristic
-median_heuristic <- function(x12, x22){
-  x <- rbind(x12, x22)
-  dists <- as.vector(dist(x))
-  return(median(dists))
-}
 
 # Linear MMD
 MMDl <- function(x12, x22, y12, y22, h_x=1, h_y=1, r_X, seed=NULL){

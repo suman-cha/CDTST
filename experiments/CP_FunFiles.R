@@ -180,29 +180,3 @@ getCor <- function(g1,v1,v2,gorac1,vorac1,vorac2){
   
   return(c('rho1'=rho1, 'rho2'=rho2, 'rho3'=rho3, 'e1'=e1, 'e2'=e2, 'e3'=e3, 'e4'=e4))
 }
-
-
-LR <- function(x1, x2, y1, y2){
-  # H0:a1=a2; H1:a1!=a2 (assume b1=b2, sigma2.0=sigma2.1 under either H0 or H1)
-  n1 <- dim(x1)[1]; n2 <- dim(x2)[1]; p <- dim(x1)[2]; n <- n1 + n2
-  ## restricted
-  x <- rbind(x1, x2); y <- c(y1,y2)
-  xmean <- matrix(colMeans(x), n, p, byrow = T)
-  ymean <- mean(y)
-  b <- solve(crossprod(x-xmean), crossprod(x-xmean, y-ymean))
-  a <- ymean - sum(b*colMeans(x))
-  sigma2_res <- mean((y - a - x%*%b)^2)
-  
-  ## unrestricted
-  xmean1 <- matrix(colMeans(x1), n1, p, byrow = T)
-  xmean2 <- matrix(colMeans(x2), n2, p, byrow = T)
-  ymean1 <- mean(y1); ymean2 <- mean(y2)
-  b <- solve(crossprod(x1-xmean1)+crossprod(x2-xmean2), crossprod(x1-xmean1, y1-ymean1)+
-               crossprod(x2-xmean2, y2-ymean2))
-  a1 <- ymean1 - sum(b*colMeans(x1)); a2 <- ymean2 - sum(b*colMeans(x2))
-  sigma2_unres <- (sum((y1-a1-x1%*%b)^2) + sum((y2-a2-x2%*%b)^2)) / (n1+n2)
-  
-  stat <- n * log(sigma2_res/sigma2_unres)
-  pval <- 1 - pchisq(stat, 1)
-  return(pval)
-}

@@ -27,8 +27,8 @@ install_pkgs <- function(pkgs){
 
 install_pkgs(required_pkgs)
 source("utils.R")
-source('FunFiles.R')
-source("PCM_functions.R")
+source('CP_FunFiles.R')
+source("CIT_functions.R")
 
 # Load libraries
 for (pkg in required_pkgs){
@@ -588,13 +588,13 @@ WGSC_test <- function(x1, x2, y1, y2, alpha=0.05, epsilon=NULL, regr.method=xgbo
       X_merged <- X_merged[merged_indices, , drop = FALSE]
       Y_merged <- Y_merged[merged_indices]
       Z_merged <- Z_merged[merged_indices]
-      wgsc.pvalue <- wgsc_binary(X=Y_merged, Y=Z_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
+      wgsc.pvalue <- wgsc_binary(Y=Z_merged, X=Y_merged, Z=X_merged, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
     }
   } else{
     X <- rbind(x1, x2)
     Y <- c(y1, y2)
     Z <- c(rep(0, n1), rep(1, n2))
-    wgsc.pvalue <- wgsc_binary(X=Y, Y=Z, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
+    wgsc.pvalue <- wgsc_binary(Y=Z, X=Y, Z=X, reg_method=regr.method, binary_reg_method = binary.regr.method, seed=seed)
   }
   if (wgsc.pvalue < alpha){
     rejection <- 1

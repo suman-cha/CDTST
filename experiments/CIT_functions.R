@@ -82,6 +82,69 @@ pcm_test_binary <- function(Y, X, Z, reg_method, binary_reg_method,
   return(1 - pnorm(test_statistic))
 }
 
+wgsc <- function(
+    Y, X, Z, reg_method, no_crossfit = FALSE,
+    reg_params = list()) {
+  #' reg params is a list containing optional regression parameters for "ghat",
+  #' "mtilde"
+  n <- length(Y)
+  Z <- as.matrix(Z)
+  X <- as.matrix(X)
+  
+  full_fitted <- numeric(n)
+  reduced_fitted <- numeric(n)
+  data_folds <- sample(rep(1:10, length.out = n))
+  
+  sample_splitting_folds <- vimp::make_folds(unique(data_folds), V = 2)
+  if (no_crossfit) {
+    full_fitted <- do.call(reg_method, c(
+      list(X = cbind(X, Z), y = Y),
+      reg_params[["ghat"]]
+    ))(cbind(X, Z))
+    reduced_fitted <- do.call(reg_method, c(
+      list(X = Z, y = full_fitted),
+      reg_params[["mtilde"]]
+    ))(Z)
+  } else {
+    for (j in 1:10) {
+      full_fit <- do.call(
+        reg_method,
+        c(
+          list(
+            X = cbind(X, Z)[data_folds != j, ],
+            y = Y[data_folds != j]
+          ),
+          reg_params[["ghat"]]
+        )
+      )
+      full_fitted[data_folds == j] <- full_fit(cbind(X, Z)[data_folds == j, ])
+      reduced_fit <- do.call(
+        reg_method,
+        c(
+          list(
+            X = Z[data_folds != j, ],
+            y = full_fit(cbind(X, Z)[data_folds != j, ])
+          ),
+          reg_params[["mtilde"]]
+        )
+      )
+      reduced_fitted[data_folds == j] <- reduced_fit(Z[data_folds == j, ])
+    }
+  }
+  
+  
+  suppressWarnings(
+    est <- vimp::cv_vim(
+      Y = Y, cross_fitted_f1 = full_fitted,
+      cross_fitted_f2 = reduced_fitted, V = 2, type = "r_squared",
+      cross_fitting_folds = data_folds,
+      sample_splitting_folds = sample_splitting_folds,
+      run_regression = FALSE, alpha = 0.05
+    )
+  )
+  return(est$p_value)
+}
+
 wgsc_binary <- function(
     Y, X, Z, reg_method, binary_reg_method,
     reg_params = list(), seed = NULL) {
@@ -99,13 +162,14 @@ wgsc_binary <- function(
   
   full_fitted <- numeric(n)
   reduced_fitted <- numeric(n)
-  data_folds <- sample(c(
-    rep(1, floor(n / 4)), rep(2, floor(n / 4)),
-    rep(3, floor(n / 4)), rep(4, n - 3 * floor(n / 4))
-  ))
+  # data_folds <- sample(c(
+  #   rep(1, floor(n / 4)), rep(2, floor(n / 4)),
+  #   rep(3, floor(n / 4)), rep(4, n - 3 * floor(n / 4))
+  # ))
+  data_folds <- sample(rep(1:10, length.out = n))
   sample_splitting_folds <- vimp::make_folds(unique(data_folds), V = 2)
   
-  for (j in 1:4) {
+  for (j in 1:10) {
     full_fit <- do.call(
       binary_reg_method,
       c(
@@ -185,7 +249,7 @@ ranger_reg_method <- function(X, y, mtry = NULL, max.depth = 6, seed=NULL, ...) 
   X <- as.matrix(X, nrow = n)
   d <- dim(X)[2]
   if (is.null(mtry)) {
-    mtry <- d
+    mtry <- sqrt(d)
   }
   W <- cbind(y, X)
   colnames(W) <- c("y", 1:d)
@@ -269,7 +333,7 @@ ranger_reg_method_binary <- function(X, y, mtry = NULL, max.depth = 6, seed=NULL
   d <- dim(X)[2]
   
   if (is.null(mtry)) {
-    mtry <- d
+    mtry <- sqrt(d)
   }
   
   colnames(X) <- paste0("V", 1:d)
@@ -542,71 +606,6 @@ pcm_test <- function(Y, X, Z, reg_method, gtilde_method = NULL,
   R <- xi * eps
   test_statistic <- sqrt(length(R)) * mean(R) / stats::sd(R)
   return(1 - pnorm(test_statistic))
-}
-
-wgsc <- function(
-    Y, X, Z, reg_method, no_crossfit = FALSE,
-    reg_params = list()) {
-  #' reg params is a list containing optional regression parameters for "ghat",
-  #' "mtilde"
-  n <- length(Y)
-  Z <- as.matrix(Z)
-  X <- as.matrix(X)
-  
-  full_fitted <- numeric(n)
-  reduced_fitted <- numeric(n)
-  data_folds <- sample(c(
-    rep(1, floor(n / 4)), rep(2, floor(n / 4)),
-    rep(3, floor(n / 4)), rep(4, n - 3 * floor(n / 4))
-  ))
-  sample_splitting_folds <- vimp::make_folds(unique(data_folds), V = 2)
-  if (no_crossfit) {
-    full_fitted <- do.call(reg_method, c(
-      list(X = cbind(X, Z), y = Y),
-      reg_params[["ghat"]]
-    ))(cbind(X, Z))
-    reduced_fitted <- do.call(reg_method, c(
-      list(X = Z, y = full_fitted),
-      reg_params[["mtilde"]]
-    ))(Z)
-  } else {
-    for (j in 1:4) {
-      full_fit <- do.call(
-        reg_method,
-        c(
-          list(
-            X = cbind(X, Z)[data_folds != j, ],
-            y = Y[data_folds != j]
-          ),
-          reg_params[["ghat"]]
-        )
-      )
-      full_fitted[data_folds == j] <- full_fit(cbind(X, Z)[data_folds == j, ])
-      reduced_fit <- do.call(
-        reg_method,
-        c(
-          list(
-            X = Z[data_folds != j, ],
-            y = full_fit(cbind(X, Z)[data_folds != j, ])
-          ),
-          reg_params[["mtilde"]]
-        )
-      )
-      reduced_fitted[data_folds == j] <- reduced_fit(Z[data_folds == j, ])
-    }
-  }
-  
-  
-  suppressWarnings(
-    est <- vimp::cv_vim(
-      Y = Y, cross_fitted_f1 = full_fitted,
-      cross_fitted_f2 = reduced_fitted, V = 2, type = "r_squared",
-      cross_fitting_folds = data_folds,
-      sample_splitting_folds = sample_splitting_folds,
-      run_regression = FALSE, alpha = 0.05
-    )
-  )
-  return(est$p_value)
 }
 
 gcm_test <- function(Y, X, Z, reg_method, reg_params = list()) {

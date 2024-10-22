@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   library(parallel)
 })
 source("all_tests.R")
-tag <- "real_high_dim"
+tag <- "real_high_dim_ver3"
 
 cur_wd <- getwd()
 file_path <- file.path(cur_wd, "real_examples", "data", "superconductivity.csv")
@@ -60,7 +60,7 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
     if (is_x1) {
       u <- dunif(Y_subset, 0, 1)
     } else {
-      u <- dnorm(exp(0.5*Y_subset), 0, 0.5)
+      u <- exp(-Y_subset)
     }
     u <- u / sum(u)
     y <- sample(Y_subset, size = n, prob = u, replace = FALSE)
@@ -72,19 +72,19 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
 
 # Define test functions
 drt_test_functions <- list(
-  LinearMMD_test = LinearMMD_test,
-  CLF_test = CLF_test,
-  CP_test = CP_test,
-  CV_LinearMMD_test = CV_LinearMMD_test,
-  CV_CLF_test = CV_CLF_test,
-  debiased_test = debiased_test
+  # LinearMMD_test = LinearMMD_test,
+  # CLF_test = CLF_test,
+  # CP_test = CP_test,
+  # CV_LinearMMD_test = CV_LinearMMD_test,
+  # CV_CLF_test = CV_CLF_test,
+  # debiased_test = debiased_test
 )
 
 cit_test_functions <- list(
-  RCIT_test = RCIT_test,
-  GCM_test = GCM_test,
-  WGSC_test = WGSC_test,
-  PCM_test = PCM_test
+  RCIT_test = RCIT_test
+  # GCM_test = GCM_test,
+  # WGSC_test = WGSC_test,
+  # PCM_test = PCM_test
 )
 
 n_values <- c(200, 400, 800, 1200, 1600, 2000)
@@ -92,12 +92,12 @@ n_sims <- 500
 estimators <- c("LL", "KLR")
 results_list <- list()
 
-cl <- makeCluster(detectCores() - 4)
+cl <- makeCluster(detectCores() - 3)
 pbapply::pboptions(cl = cl)
 
 
 for (n in n_values){
-  for (is_null in c(TRUE, FALSE)){
+  for (is_null in c(FALSE)){
     h_label <- if(is_null) "Null" else "Alternative"
     
     for (test_type in c("DRT", "CIT")){
@@ -133,7 +133,7 @@ for (n in n_values){
             cat("[Test]", test_name, "| n:", n, "| Estimator:", est, "|", h_label, "| Rejection Rate:", mean_result, "\n", strrep("-", 80), "\n")
           }
         } else {
-          # Run the simulations for CIT tests (without estimators)
+          # Run the simulations for CIT tests
           result <- pbapply::pbsapply(1:n_sims, function(sim) {
             seed <- 1203 + sim
             set.seed(seed)
@@ -143,7 +143,8 @@ for (n in n_values){
             set.seed(seed + n_sims)
             d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
             
-            epsilon <- 1/sqrt(log(n))
+            # epsilon <- 1/sqrt(log(n))
+            epsilon <- 1/log(n)
             test_args <- list(d1$x, d2$x, d1$y, d2$y, alg1 = TRUE, epsilon = epsilon, seed = seed)
             
             do.call(test_functions[[test_name]], test_args)
@@ -171,6 +172,6 @@ stopCluster(cl)
 results_dt <- rbindlist(results_list)
 
 # Save the results
-filename <- paste0("results/simulation_results_", tag, ".csv")
-fwrite(results_dt, filename, row.names = FALSE)
-cat("Results saved to", filename, "\n")
+# filename <- paste0("results/simulation_results_", tag, ".csv")
+# fwrite(results_dt, filename, row.names = FALSE)
+# cat("Results saved to", filename, "\n")
