@@ -1,7 +1,7 @@
 # Cond2ST: General Frameworks for Conditional Two-Sample Testing
 
 This repository contains the R codes for reproducing the experimental results presented in the paper "General Frameworks for Conditional Two-sample Testing" [link]. 
-The paper introduces general methodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. We introduce two approaches: (1) converting conditional independence tests to conditional two-sample tests and (2) density ratio-based testing. If you are planning to do tests for your own projects, I recommend to use R package named "Cond2ST". 
+The paper introduces general methodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. We introduce two approaches: (1) converting conditional independence tests to conditional two-sample tests and (2) density ratio-based testing. If you are planning to do tests for your own projects, we recommend to use R package named "Cond2ST". 
 
 ## Getting Started 
 
