@@ -14,11 +14,16 @@ git clone https://github.com/suman-cha/Cond2ST.git
 cd Cond2ST
 ```
 
-### Run Experiments
+## Experiments
 
+### Requirements
+
+Make sure you have R installed (version 4.0 or higher) along with the necessary packages.
+
+### Run Experiments 
 The experiments in the paper can be reproduced using the R codes provided in the experiments/ directory. Each code corresponds to an experiment discussed in the paper.
 
-1. **Prepare the Data**: The superconductivity dataset used in the real data experiments are included in the `real_examples/data/` folder. Make sure the data is in the correct format before running the scripts. Other simulation data are generated in each code. 
+1. **Prepare the Data**: The superconductivity dataset used in the real data experiments are included in the `real_examples/data/` folder. Or you can download data from [superconductivity]('https://archive.ics.uci.edu/dataset/464/superconductivty+data'). Make sure the data is in the correct format before running the scripts. Other simulation data are generated in each code. 
 
 2. **Run Scripts**: Navigate to the `experiments/` folder and run the desired experiment script. For example:
    ```sh
