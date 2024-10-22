@@ -1,4 +1,4 @@
-# Experiments for Cond2ST: Conditional Two-Sample Testing
+# Experiments for Cond2ST
 
 This folder contains the R code necessary to reproduce the experimental results presented in the paper. The experiments in this directory correspond to the sections and appendices in the paper and are organized into the following categories:
 
@@ -19,14 +19,14 @@ This folder contains the R code necessary to reproduce the experimental results 
 ### 3. `scenarios/`
 - This folder contains scripts that replicate the results from **Section 5.2** of the paper. Each script corresponds to a different conditional two-sample test scenario:
   - **Scenario 1**:
-    - `scenario1u.R` 
-    - `scenario1b.R` 
+    - `scenario1u.R` : Scenario 1 (Linear Model with Mean Shift) with unbounded marginal density ratio of X
+    - `scenario1b.R` : Scenario 1 (Linear Model with Mean Shift) with bounded marginal density ratio of X
   - **Scenario 2**:
-    - `scenario2u.R` 
-    - `scenario2b.R` 
+    - `scenario2u.R` : Scenario 2 (High Variability in Conditional Distribution) with unbounded marginal density ratio of X
+    - `scenario2b.R` : Scenario 2 (High Variability in Conditional Distribution) with bounded marginal density ratio of X
   - **Scenario 3**:
-    - `scenario3u.R` 
-    - `scenario3b.R` 
+    - `scenario3u.R` : Scenario 3 (Post-Nonlinear Model) with unbounded marginal density ratio of X
+    - `scenario3b.R` : Scenario 3 (Post-Nonlinear Model) with bounded marginal density ratio of X
 
 These scripts test various assumptions about the underlying distributions of the two populations being compared.
 
