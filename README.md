@@ -50,4 +50,4 @@ TBD
 
 ## Acknowledgments
 
-TBD
+We acknowledge support from the Basic Science Research Program through the National Research Foundation of Korea (NRF) funded by the Ministry of Education (2022R1A4A1033384), and the Korea government (MSIT) RS-2023-00211073.
