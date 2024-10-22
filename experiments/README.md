@@ -36,11 +36,11 @@ These scripts test various assumptions about the underlying distributions of the
   - **Lundborg, A. R., Kim, I., Shah, R. D., and Samworth, R. J. (2022)**. *The Projected Covariance Measure for assumption-lean variable significance testing*. arXiv preprint arXiv:2211.02039.
 
 ### 5. `CP_FunFiles.R`
-- This script implements a two-sample conditional distribution test using **conformal prediction** and **weighted rank sum** methods, as introduced by:
+- This script includes R functions to calculate test statistics using **conformal prediction** and **weighted rank sum** methods, as introduced by:
   - **Hu, X. and Lei, J. (2024)**. *A two-sample conditional distribution test using conformal prediction and weighted rank sum*. Journal of the American Statistical Association, 119(546):1136–1154.
 
 ### 6. `all_tests.R`
-- This script aggregates all the test methods described in the paper, providing a centralized way to run all of them. It includes tests based on LinearMMD, Classifier-based approach, conformal prediction, conditional independence testing appraoch, and other conditional two-sample testing methods.
+- This script aggregates all the test methods described in the paper. It includes tests based on LinearMMD, Classifier-based approach, conformal prediction, conditional independence testing appraoch, and other conditional two-sample testing methods.
 
 ### 7. `plot.R`
 - This script generates **Figures 1, 2, and 3** from the paper, visualizing the results of the experiments.
