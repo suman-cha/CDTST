@@ -35,7 +35,17 @@ The experiments in the paper can be reproduced using the R codes provided in the
 
 If you find this code useful for your research, please cite the paper:
 
-TBD
+```bibtex
+@misc{lee2024generalframeworksconditionaltwosample,
+      title={General Frameworks for Conditional Two-Sample Testing},
+      author={Seongchan Lee and Suman Cha and Ilmun Kim},
+      year={2024},
+      eprint={2410.16636},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML},
+      url={https://arxiv.org/abs/2410.16636},
+}
+```
 
 ## Contact
 
