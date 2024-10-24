@@ -1,7 +1,7 @@
 # Cond2ST: General Frameworks for Conditional Two-Sample Testing
 
-This repository contains the R codes for reproducing the experimental results presented in the paper "General Frameworks for Conditional Two-sample Testing" [link]. 
-The paper introduces general methodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. We introduce two approaches: (1) converting conditional independence tests to conditional two-sample tests and (2) density ratio-based testing. If you are planning to do tests for your own projects, I recommend to use R package named "Cond2ST". 
+This repository contains the R codes for reproducing the experimental results presented in the paper "General Frameworks for Conditional Two-sample Testing" [arxiv](https://arxiv.org/abs/2410.16636). 
+The paper introduces general methodologies for conditional two-sample testing, aiming to determine whether two populations have the same distributions after accounting for confounding variables. We introduce two approaches: (1) converting conditional independence tests to conditional two-sample tests and (2) density ratio-based testing. If you are planning to do tests for your own projects, we recommend to use R package named "Cond2ST". 
 
 ## Getting Started 
 
@@ -14,11 +14,14 @@ git clone https://github.com/suman-cha/Cond2ST.git
 cd Cond2ST
 ```
 
-### Run Experiments
+### Requirements
 
+Make sure you have R installed (version 4.0 or higher) along with the necessary packages.
+
+### Run Experiments 
 The experiments in the paper can be reproduced using the R codes provided in the experiments/ directory. Each code corresponds to an experiment discussed in the paper.
 
-1. **Prepare the Data**: The superconductivity dataset used in the real data experiments are included in the `real_examples/data/` folder. Make sure the data is in the correct format before running the scripts. Other simulation data are generated in each code. 
+1. **Prepare the Data**: The superconductivity dataset used in the real data experiments are included in the `real_examples/data/` folder. Or you can download data yourself from [superconductivity](https://archive.ics.uci.edu/dataset/464/superconductivty+data). Make sure the data is in the correct format before running the scripts. Other simulation data are generated in each code. 
 
 2. **Run Scripts**: Navigate to the `experiments/` folder and run the desired experiment script. For example:
    ```sh
@@ -32,7 +35,17 @@ The experiments in the paper can be reproduced using the R codes provided in the
 
 If you find this code useful for your research, please cite the paper:
 
-TBD
+```bibtex
+@misc{lee2024generalframeworksconditionaltwosample,
+      title={General Frameworks for Conditional Two-Sample Testing},
+      author={Seongchan Lee and Suman Cha and Ilmun Kim},
+      year={2024},
+      eprint={2410.16636},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML},
+      url={https://arxiv.org/abs/2410.16636},
+}
+```
 
 ## Contact
 
@@ -46,8 +59,8 @@ Ilmun Kim : ilmun@yonsei.ac.kr
 
 ## License
 
-TBD
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## Acknowledgments
 
-TBD
+We acknowledge support from the Basic Science Research Program through the National Research Foundation of Korea (NRF) funded by the Ministry of Education (2022R1A4A1033384), and the Korea government (MSIT) RS-2023-00211073.
