@@ -105,7 +105,7 @@ for (n in n_values) {
               seed <- 1203 + sim
               set.seed(seed)
               
-              # 데이터 생성
+              # generate data
               d1 <- sample_data(X_norm, Y_norm, n, is_null, TRUE)
               set.seed(seed + n_sims)
               d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
@@ -131,7 +131,7 @@ for (n in n_values) {
             seed <- 1203 + sim
             set.seed(seed)
             
-            # 데이터 생성
+            # generate data
             d1 <- sample_data(X_norm, Y_norm, n, is_null, TRUE)
             set.seed(seed + n_sims)
             d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
