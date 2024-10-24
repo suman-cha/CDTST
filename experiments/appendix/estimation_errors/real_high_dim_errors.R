@@ -12,7 +12,7 @@ source("./experiments/utils.R")
 tag <- "density_ratio_errors_real_high_dim"
 
 cur_wd <- getwd()
-file_path <- file.path(cur_wd, "real_examples", "data", "superconductivity.csv")
+file_path <- file.path(cur_wd, "experiments", "real_examples", "data", "superconductivity.csv")
 data <- read.csv(file_path)
 
 X <- as.matrix(data[, !names(data) %in% c("critical_temp")])
