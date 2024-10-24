@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   library(data.table)
   library(parallel)
 })
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 tag <- "real_low_dim_ver2"
 data("diamonds")

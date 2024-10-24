@@ -7,7 +7,7 @@ suppressPackageStartupMessages({
   library(data.table)
   library(parallel)
 })
-source("all_tests.R")
+source("./experiments/all_tests.R")
 tag <- "real_high_dim_ver3"
 
 cur_wd <- getwd()
