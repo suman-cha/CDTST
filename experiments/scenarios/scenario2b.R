@@ -32,7 +32,7 @@ generate_data <- function(n, p, group) {
 }
 
 
-generate_y <- function(x, rho, is_null) {
+generate_y <- function(x, rho=10, is_null=TRUE) {
   n <- nrow(x)
   p <- ncol(x)
   
