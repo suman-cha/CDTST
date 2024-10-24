@@ -104,8 +104,8 @@ generate_plot_combined <- function(data, scenario_name) {
 
 
 for (scenario_number in 1:3) {
-  file_path_U <- paste0("Results/simulation_results_S", scenario_number, "U.csv")
-  file_path_B <- paste0("Results/simulation_results_S", scenario_number, "B.csv")
+  file_path_U <- paste0("results/simulation_results_S", scenario_number, "U.csv")
+  file_path_B <- paste0("results/simulation_results_S", scenario_number, "B.csv")
   save_dir <- "Figures"
   
   if (!dir.exists(save_dir)) {
