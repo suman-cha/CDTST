@@ -6,11 +6,10 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(data.table)
-  library(parallel)
 })
 source("./experiments/all_tests.R")
 
-tag <- "real_low_dim_ver2"
+tag <- "real_low_dim"
 data("diamonds")
 data <- diamonds
 
@@ -89,17 +88,6 @@ n_sims <- 500
 estimators <- c("LL", "KLR")
 results_list <- list()
 
-cl <- makeCluster(detectCores() - 6)
-pbapply::pboptions(cl = cl)
-
-clusterExport(cl, c("sample_data", "X_norm", "Y_norm", "normalize", "drt_test_functions", "cit_test_functions", "n_sims"))
-
-clusterEvalQ(cl, {
-  source("utils.R")  # 클러스터에 utils.R 파일을 로드하여 apply_alg1 함수 사용 가능
-  source("all_tests.R")  # all_tests.R 파일도 필요하면 로드
-  library(data.table)
-})
-
 for (n in n_values) {
   for (is_null in c(FALSE, TRUE)) {
     h_label <- if (is_null) "Null" else "Alternative"
@@ -110,7 +98,7 @@ for (n in n_values) {
       for (test_name in names(test_functions)) {
         if (test_type == "DRT") {
           for (est in estimators) {
-            result <- parSapply(cl, 1:n_sims, function(sim, n, is_null, est, test_functions, test_name) {
+            result <- pbapply::pbsapply(1:n_sims, function(sim) {
               seed <- 1203 + sim
               set.seed(seed)
               
@@ -121,7 +109,7 @@ for (n in n_values) {
               
               test_args <- list(d1$x, d2$x, d1$y, d2$y, est.method = est, seed = seed)
               do.call(test_functions[[test_name]], test_args)
-            }, n = n, is_null = is_null, est = est, test_functions = test_functions, test_name = test_name, simplify = "array")
+            })
             
             mean_result <- mean(result)
             results_list[[length(results_list) + 1]] <- data.table(
@@ -136,7 +124,7 @@ for (n in n_values) {
             cat("[Test]", test_name, "| n:", n, "| Estimator:", est, "|", h_label, "| Rejection Rate:", mean_result, "\n", strrep("-", 80), "\n")
           }
         } else {
-          result <- parSapply(cl, 1:n_sims, function(sim, n, is_null, test_functions, test_name) {
+          result <- pbapply::pbsapply(1:n_sims, function(sim) {
             seed <- 1203 + sim
             set.seed(seed)
             
@@ -149,7 +137,7 @@ for (n in n_values) {
             test_args <- list(d1$x, d2$x, d1$y, d2$y, alg1 = TRUE, epsilon = epsilon, seed = seed)
             
             do.call(test_functions[[test_name]], test_args)
-          }, n = n, is_null = is_null, test_functions = test_functions, test_name = test_name, simplify = "array")
+          })
           
           mean_result <- mean(result)
           results_list[[length(results_list) + 1]] <- data.table(
@@ -168,12 +156,7 @@ for (n in n_values) {
   }
 }
 
-# 결과 병합
 results_dt <- rbindlist(results_list)
-
-# 클러스터 종료
-stopCluster(cl)
-
 
 # Save the results
 filename <- paste0("results/simulation_results_", tag, ".csv")

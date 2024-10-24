@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   library(parallel)
 })
 source("./experiments/all_tests.R")
-tag <- "real_high_dim_ver3"
+tag <- "real_high_dim"
 
 cur_wd <- getwd()
 file_path <- file.path(cur_wd, "real_examples", "data", "superconductivity.csv")
@@ -69,22 +69,21 @@ sample_data <- function(X, Y, n, is_null = TRUE, is_x1 = TRUE) {
   return(list(x = x, y = y))
 }
 
-
 # Define test functions
 drt_test_functions <- list(
-  # LinearMMD_test = LinearMMD_test,
-  # CLF_test = CLF_test,
-  # CP_test = CP_test,
-  # CV_LinearMMD_test = CV_LinearMMD_test,
-  # CV_CLF_test = CV_CLF_test,
-  # debiased_test = debiased_test
+  LinearMMD_test = LinearMMD_test,
+  CLF_test = CLF_test,
+  CP_test = CP_test,
+  CV_LinearMMD_test = CV_LinearMMD_test,
+  CV_CLF_test = CV_CLF_test,
+  debiased_test = debiased_test
 )
 
 cit_test_functions <- list(
-  RCIT_test = RCIT_test
-  # GCM_test = GCM_test,
-  # WGSC_test = WGSC_test,
-  # PCM_test = PCM_test
+  RCIT_test = RCIT_test,
+  GCM_test = GCM_test,
+  WGSC_test = WGSC_test,
+  PCM_test = PCM_test
 )
 
 n_values <- c(200, 400, 800, 1200, 1600, 2000)
@@ -92,32 +91,28 @@ n_sims <- 500
 estimators <- c("LL", "KLR")
 results_list <- list()
 
-cl <- makeCluster(detectCores() - 3)
-pbapply::pboptions(cl = cl)
-
-
-for (n in n_values){
-  for (is_null in c(FALSE)){
-    h_label <- if(is_null) "Null" else "Alternative"
+for (n in n_values) {
+  for (is_null in c(TRUE, FALSE)) {
+    h_label <- if (is_null) "Null" else "Alternative"
     
-    for (test_type in c("DRT", "CIT")){
+    for (test_type in c("DRT", "CIT")) {
       test_functions <- if (test_type == "DRT") drt_test_functions else cit_test_functions
       
-      for (test_name in names(test_functions)){
+      for (test_name in names(test_functions)) {
         if (test_type == "DRT") {
           for (est in estimators) {
             result <- pbapply::pbsapply(1:n_sims, function(sim) {
               seed <- 1203 + sim
-              set.seed(seed) 
+              set.seed(seed)
               
-              # Generate data for Group 1 and 2
+              # 데이터 생성
               d1 <- sample_data(X_norm, Y_norm, n, is_null, TRUE)
               set.seed(seed + n_sims)
               d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
               
-              test_args <- list(d1$x, d2$x, d1$y, d2$y, est.method=est, seed=seed)
+              test_args <- list(d1$x, d2$x, d1$y, d2$y, est.method = est, seed = seed)
               do.call(test_functions[[test_name]], test_args)
-            }, simplify = "array")
+            })
             
             mean_result <- mean(result)
             results_list[[length(results_list) + 1]] <- data.table(
@@ -129,26 +124,23 @@ for (n in n_values){
               rejection_rate = mean_result
             )
             
-            # Print results
             cat("[Test]", test_name, "| n:", n, "| Estimator:", est, "|", h_label, "| Rejection Rate:", mean_result, "\n", strrep("-", 80), "\n")
           }
         } else {
-          # Run the simulations for CIT tests
           result <- pbapply::pbsapply(1:n_sims, function(sim) {
             seed <- 1203 + sim
             set.seed(seed)
             
-            # Generate data for Group 1 and 2
+            # 데이터 생성
             d1 <- sample_data(X_norm, Y_norm, n, is_null, TRUE)
             set.seed(seed + n_sims)
             d2 <- sample_data(X_norm, Y_norm, n, is_null, FALSE)
             
-            # epsilon <- 1/sqrt(log(n))
-            epsilon <- 1/log(n)
+            epsilon <- 1 / sqrt(log(n))
             test_args <- list(d1$x, d2$x, d1$y, d2$y, alg1 = TRUE, epsilon = epsilon, seed = seed)
             
             do.call(test_functions[[test_name]], test_args)
-          }, simplify = "array")
+          })
           
           mean_result <- mean(result)
           results_list[[length(results_list) + 1]] <- data.table(
@@ -160,18 +152,16 @@ for (n in n_values){
             rejection_rate = mean_result
           )
           
-          # Print results
           cat("[Test]", test_name, "| n:", n, "|", h_label, "| Rejection Rate:", mean_result, "\n", strrep("-", 80), "\n")
         }
       }
     }
   }
 }
-stopCluster(cl)
 
 results_dt <- rbindlist(results_list)
 
 # Save the results
-# filename <- paste0("results/simulation_results_", tag, ".csv")
-# fwrite(results_dt, filename, row.names = FALSE)
-# cat("Results saved to", filename, "\n")
+filename <- paste0("results/simulation_results_", tag, ".csv")
+fwrite(results_dt, filename, row.names = FALSE)
+cat("Results saved to", filename, "\n")
