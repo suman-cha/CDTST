@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
   library(xgboost)
 })
 tag <- "S2U_various_epsilon"
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 # Define the function g(Z)
 g <- function(Z, rho) {

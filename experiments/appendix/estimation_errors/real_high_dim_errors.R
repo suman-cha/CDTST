@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   library(CVST)
   library(parallel)
 })
-source("utils.R")
+source("./experiments/utils.R")
 tag <- "density_ratio_errors_real_high_dim"
 
 cur_wd <- getwd()

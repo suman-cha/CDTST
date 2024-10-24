@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
   library(data.table)
 })
 tag <- "S1U"
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 # Data generation functions
 generate_data <- function(n, p, group) {

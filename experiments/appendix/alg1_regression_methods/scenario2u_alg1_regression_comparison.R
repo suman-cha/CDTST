@@ -7,7 +7,7 @@ suppressPackageStartupMessages({
   library(tmvtnorm)
 })
 tag <- "S2U_regression_comparison"
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 
 # Define the function g(Z)

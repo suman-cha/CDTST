@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
   library(data.table)
 })
 tag <- "S1U_regression_comparison"
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 # Data generation functions
 generate_data <- function(n, p, group) {
@@ -25,8 +25,8 @@ generate_y <- function(x, is_null = TRUE, sigma = 2) {
 
 # Test functions
 cit_test_functions <- list(
-  PCM_test = PCM_test,
-  GCM_test = GCM_test,
+  # PCM_test = PCM_test,
+  # GCM_test = GCM_test,
   WGSC_test = WGSC_test
 )
 
@@ -36,7 +36,7 @@ n_sims <- 500
 alpha <- 0.05
 d <- 10
 alg1_list <- c(TRUE, FALSE)
-regression_methods <- c("lm", "rf", "xgboost")
+regression_methods <- c("rf")
 results_list <- list()
 
 # Simulation loop

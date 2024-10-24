@@ -7,7 +7,7 @@ suppressPackageStartupMessages({
   library(tmvtnorm)
 })
 tag <- "S1B"
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 
 # Function to generate covariates using truncated multivariate normal distributions

@@ -26,9 +26,9 @@ install_pkgs <- function(pkgs){
 }
 
 install_pkgs(required_pkgs)
-source("utils.R")
-source('CP_FunFiles.R')
-source("CIT_functions.R")
+source("./experiments/utils.R")
+source('./experiments/CP_FunFiles.R')
+source("./experiments/CIT_functions.R")
 
 # Load libraries
 for (pkg in required_pkgs){

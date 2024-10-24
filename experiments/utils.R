@@ -20,7 +20,7 @@ install_pkgs <- function(pkgs){
 }
 
 install_pkgs(required_pkgs)
-source("CP_FunFiles.R")
+source("./experiments/CP_FunFiles.R")
 
 # Gaussian kernel 
 gaussian.kernel <- function(x, y = NULL, h=1) {

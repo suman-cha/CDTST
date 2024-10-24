@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
   library(xgboost)
 })
 tag <- "S3U_various_epsilon"
-source("all_tests.R")
+source("./experiments/all_tests.R")
 
 # Data generation functions
 generate_data <- function(n, p, group) {

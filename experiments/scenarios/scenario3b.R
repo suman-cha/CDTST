@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
   library(data.table)     
   library(tmvtnorm)
 })
-source("all_tests.R")
+source("./experiments/all_tests.R")
 tag <- "S3B"
 
 # Bounded
