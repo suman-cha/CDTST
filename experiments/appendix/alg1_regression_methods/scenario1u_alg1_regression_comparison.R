@@ -25,8 +25,8 @@ generate_y <- function(x, is_null = TRUE, sigma = 2) {
 
 # Test functions
 cit_test_functions <- list(
-  # PCM_test = PCM_test,
-  # GCM_test = GCM_test,
+  PCM_test = PCM_test,
+  GCM_test = GCM_test,
   WGSC_test = WGSC_test
 )
 
